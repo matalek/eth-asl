@@ -41,16 +41,6 @@ public abstract class Worker<Q extends RequestQueue<R>, R> implements Runnable {
         }
     }
 
-    protected String sendServerRequest(PrintWriter out, BufferedReader in, String serverRequest, int responseLinesCount)
-            throws IOException {
-        out.println(serverRequest);
-        StringBuilder serverResponse = new StringBuilder();
-        for (int i = 0; i < responseLinesCount; i++) {
-            serverResponse.append(in.readLine()).append("\n");
-        }
-        return serverResponse.toString();
-    }
-
     public void sendClientResponse(Request request, String clientResponse) throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(2048); // TODO: think about size
         buffer.put(clientResponse.getBytes());

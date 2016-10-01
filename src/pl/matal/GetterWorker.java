@@ -41,7 +41,21 @@ public class GetterWorker extends Worker<GetRequestQueue, GetRequest> {
 
         // TODO: maybe we want to store value in the object
         // TODO: think about number of lines
-        String serverResponse = sendServerRequest(out, in, serverRequest.toString(), 3);
+        String serverResponse = sendServerRequest(out, in, serverRequest.toString());
         sendClientResponse(request, serverResponse);
+    }
+
+    private String sendServerRequest(PrintWriter out, BufferedReader in, String serverRequest)
+            throws IOException {
+        out.println(serverRequest);
+        StringBuilder serverResponse = new StringBuilder();
+        while (true) {
+            String line = in.readLine();
+            serverResponse.append(line).append("\n");
+            if (line.equals("END")) {
+                break;
+            }
+        }
+        return serverResponse.toString();
     }
 }

@@ -77,6 +77,7 @@ public class IOManager implements Runnable {
             key.cancel();
         } else {
             String result = new String(buffer.array()).trim();
+            buffer.clear();
             Request request = createRequest(channel, result);
             server.handleRequest(request);
         }
