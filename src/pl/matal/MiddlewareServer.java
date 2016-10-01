@@ -16,8 +16,8 @@ public class MiddlewareServer {
     public MiddlewareServer() {
         ioManager = new IOManager(this);
         hasher = new Hasher();
-        setRequestQueue = new SetRequestQueue(PORT + 1);
-        getRequestQueue = new GetRequestQueue(PORT + 1, GET_WORKERS);
+        setRequestQueue = new SetRequestQueue(new MemcachedServer[]{new MemcachedServer("localhost", PORT + 1)});
+        getRequestQueue = new GetRequestQueue(new MemcachedServer("localhost", PORT + 1), GET_WORKERS);
     }
 
     public int getPort() {

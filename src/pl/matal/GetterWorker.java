@@ -9,13 +9,11 @@ import java.net.Socket;
 /**
  * Created by aleksander on 28.09.16.
  */
-public class GetterWorker extends Worker {
-
-    private Socket socket;
+public class GetterWorker extends Worker<GetRequestQueue, GetRequest> {
     private PrintWriter out;
     private BufferedReader in;
 
-    public GetterWorker(RequestQueue queue) {
+    public GetterWorker(GetRequestQueue queue) {
         super(queue);
     }
 
@@ -24,27 +22,21 @@ public class GetterWorker extends Worker {
         try {
             connectToServer();
             runWorker();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (InterruptedException|IOException e) {
             e.printStackTrace();
         }
     }
 
-
     private void connectToServer() throws IOException {
-        socket = new Socket("localhost", queue.getServerPort());
-        socket.setReuseAddress(true);
-        out =
-                new PrintWriter(socket.getOutputStream(), true);
-        in =
-                new BufferedReader(
-                        new InputStreamReader(socket.getInputStream()));
+        Socket socket = queue.getServer().connectSync();
+        out = new PrintWriter(socket.getOutputStream(), true);
+        in = new BufferedReader(
+                new InputStreamReader(socket.getInputStream()));
     }
 
     @Override
-    protected void handleRequest(Request request) throws IOException {
-        StringBuilder serverRequest =  new StringBuilder("get ");
+    protected void handleRequest(GetRequest request) throws IOException {
+        StringBuilder serverRequest = new StringBuilder("get ");
         serverRequest.append(request.getKey()).append("\r");
 
         // TODO: maybe we want to store value in the object

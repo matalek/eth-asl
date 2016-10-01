@@ -10,28 +10,27 @@ import java.util.concurrent.LinkedBlockingDeque;
 /**
  * Created by aleksander on 26.09.16.
  */
-public abstract class RequestQueue {
-    protected BlockingDeque<Request> queue;
+public abstract class RequestQueue<R> {
+    protected BlockingDeque<R> queue;
     protected Worker[] workers;
-    protected int serverPort;
 
-    public RequestQueue(int serverPort) {
+    public RequestQueue() {
         this.queue = new LinkedBlockingDeque<>();
-        this.serverPort = serverPort;
     }
 
-    public int getServerPort() {
-        return serverPort;
-    }
-
-    public void add(Request request) {
+    public void add(R request) {
         // Queue has no size limitations, so we don't block here.
         queue.add(request);
     }
 
-    public Request get() throws InterruptedException {
+    public R get() throws InterruptedException {
         // Queue can be empty, so we need a blocking version here.
         return queue.take();
+    }
+
+    public R getNoBlock() throws InterruptedException {
+        // TODO: Non-blocking versiob - remove after changing to not active waiting
+        return queue.poll();
     }
 
     public void startWorkers() {

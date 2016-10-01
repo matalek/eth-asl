@@ -11,10 +11,10 @@ import java.nio.channels.SocketChannel;
 /**
  * Created by aleksander on 26.09.16.
  */
-public abstract class Worker implements Runnable {
-    protected RequestQueue queue;
+public abstract class Worker<Q extends RequestQueue<R>, R> implements Runnable {
+    protected Q queue;
 
-    public Worker(RequestQueue queue) {
+    public Worker(Q queue) {
         this.queue = queue;
     }
 
@@ -29,7 +29,7 @@ public abstract class Worker implements Runnable {
 
     protected void runWorker() throws InterruptedException {
         while (true) {
-            Request request = queue.get();
+            R request = queue.get();
 
             try {
                 handleRequest(request);
@@ -51,12 +51,12 @@ public abstract class Worker implements Runnable {
         return serverResponse.toString();
     }
 
-    protected void sendClientResponse(Request request, String clientResponse) throws IOException {
+    public void sendClientResponse(Request request, String clientResponse) throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(2048); // TODO: think about size
         buffer.put(clientResponse.getBytes());
         buffer.flip();
         request.getChannel().write(buffer);
     }
 
-    protected abstract void handleRequest(Request request) throws IOException;
+    protected abstract void handleRequest(R request) throws IOException;
 }
