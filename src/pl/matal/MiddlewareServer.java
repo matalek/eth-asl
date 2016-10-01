@@ -6,6 +6,7 @@ package pl.matal;
 public class MiddlewareServer {
     private static final int PORT = 11212;
     private static final int SERVER_COUNT = 5;
+    private static final int GET_WORKERS = 3;
 
     private IOManager ioManager;
     private Hasher hasher;
@@ -16,7 +17,7 @@ public class MiddlewareServer {
         ioManager = new IOManager(this);
         hasher = new Hasher();
         setRequestQueue = new SetRequestQueue(PORT + 1);
-        getRequestQueue = new GetRequestQueue(PORT + 1);
+        getRequestQueue = new GetRequestQueue(PORT + 1, GET_WORKERS);
     }
 
     public int getPort() {

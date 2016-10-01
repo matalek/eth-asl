@@ -5,10 +5,11 @@ package pl.matal;
  */
 public class GetRequestQueue extends RequestQueue {
 
-    public GetRequestQueue(int serverPort) {
+    public GetRequestQueue(int serverPort, int workersNumber) {
         super(serverPort);
-        // TODO: add more workers
-        workers = new Worker[1];
-        workers[0] = new GetterWorker(this);
+        workers = new Worker[workersNumber];
+        for (int i = 0; i < workersNumber; i++) {
+            workers[i] = new GetterWorker(this);
+        }
     }
 }
