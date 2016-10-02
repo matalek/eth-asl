@@ -13,7 +13,8 @@ public class GetRequest extends Request {
     }
 
     @Override
-    public void addToQueue(MiddlewareServer server) {
-        server.getGetRequestQueue().add(this);
+    public int getType() {
+        return TYPE_GET;
     }
+
 }

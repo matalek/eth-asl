@@ -10,6 +10,9 @@ public abstract class Request {
     protected String key;
     protected int serverNumber;
 
+    public static final int TYPE_SET = 0;
+    public static final int TYPE_GET = 1;
+
     public Request(SocketChannel channel, String key) {
         this.channel = channel;
         this.key = key;
@@ -31,7 +34,7 @@ public abstract class Request {
         this.serverNumber = serverNumber;
     }
 
-    public abstract void addToQueue(MiddlewareServer server);
+    public abstract int getType();
 
     @Override
     public String toString() {

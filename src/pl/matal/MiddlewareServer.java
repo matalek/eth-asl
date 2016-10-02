@@ -1,45 +1,69 @@
 package pl.matal;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by aleksander on 26.09.16.
  */
 public class MiddlewareServer {
-    private static final int PORT = 11212;
-    private static final int SERVER_COUNT = 5;
-    private static final int GET_WORKERS = 3;
+    private final String myIp;
+    private final int myPort;
+    private final int serverCount;
 
     private IOManager ioManager;
     private Hasher hasher;
-    private SetRequestQueue setRequestQueue;
-    private GetRequestQueue getRequestQueue;
+    private SetRequestQueue[] setRequestQueues;
+    private GetRequestQueue[] getRequestQueues;
 
-    public MiddlewareServer() {
+    public MiddlewareServer(String myIp, int myPort, List<String> mcAddresses, int numThreadsPTP, int writeToCount) {
+        this.myIp = myIp;
+        this.myPort = myPort;
         ioManager = new IOManager(this);
         hasher = new Hasher();
-        setRequestQueue = new SetRequestQueue(new MemcachedServer[]{new MemcachedServer("localhost", PORT + 1)});
-        getRequestQueue = new GetRequestQueue(new MemcachedServer("localhost", PORT + 1), GET_WORKERS);
+
+        serverCount = mcAddresses.size();
+
+        MemcachedServer[] servers = new MemcachedServer[serverCount];
+        int counter = 0;
+        for (String address : mcAddresses) {
+            String[] parts = address.split(":");
+            servers[counter] = new MemcachedServer(parts[0], Integer.parseInt(parts[1]));
+            counter++;
+        }
+
+        setRequestQueues = new SetRequestQueue[serverCount];
+        getRequestQueues = new GetRequestQueue[serverCount];
+        // TODO: add handling of replication
+        for (int i = 0; i < serverCount; i++) {
+            setRequestQueues[i] = new SetRequestQueue(new MemcachedServer[]{servers[i]});
+            getRequestQueues[i] = new GetRequestQueue(servers[i], numThreadsPTP);
+        }
     }
 
-    public int getPort() {
-        return PORT;
+    public int getMyPort() {
+        return myPort;
     }
 
-    public SetRequestQueue getSetRequestQueue() {
-        return setRequestQueue;
+    public String getMyIp() {
+        return myIp;
     }
 
-    public GetRequestQueue getGetRequestQueue() {
-        return getRequestQueue;
-    }
-
-    public void start() {
+    public void run() {
+        // TODO: think if to create another thread
         new Thread(ioManager).start();
-        setRequestQueue.startWorkers();
-        getRequestQueue.startWorkers();
+        for (int i = 0; i < serverCount; i++) {
+            setRequestQueues[i].startWorkers();
+            getRequestQueues[i].startWorkers();
+        }
     }
 
     public void handleRequest(Request request) {
-        hasher.setServerNumber(request, SERVER_COUNT);
-        request.addToQueue(this);
+        int serverNumber = hasher.setServerNumber(request, serverCount);
+        if (request.getType() == Request.TYPE_GET) {
+            getRequestQueues[serverNumber].add((GetRequest) request);
+        } else {
+            setRequestQueues[serverNumber].add((SetRequest) request);
+        }
     }
 }

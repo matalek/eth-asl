@@ -37,7 +37,7 @@ public class IOManager implements Runnable {
 
         // On this socket we listen to new connections.
         ServerSocketChannel serverChannel = ServerSocketChannel.open();
-        InetSocketAddress addr = new InetSocketAddress("localhost", server.getPort());
+        InetSocketAddress addr = new InetSocketAddress(server.getMyIp(), server.getMyPort());
         serverChannel.bind(addr);
         serverChannel.configureBlocking(false);
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);

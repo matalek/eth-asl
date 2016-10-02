@@ -25,8 +25,8 @@ public class SetRequest extends Request {
     }
 
     @Override
-    public void addToQueue(MiddlewareServer server) {
-        server.getSetRequestQueue().add(this);
+    public int getType() {
+        return TYPE_SET;
     }
 
     @Override
