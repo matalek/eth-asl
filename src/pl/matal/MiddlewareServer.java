@@ -34,9 +34,12 @@ public class MiddlewareServer {
 
         setRequestQueues = new SetRequestQueue[serverCount];
         getRequestQueues = new GetRequestQueue[serverCount];
-        // TODO: add handling of replication
         for (int i = 0; i < serverCount; i++) {
-            setRequestQueues[i] = new SetRequestQueue(new MemcachedServer[]{servers[i]});
+            MemcachedServer[] setServers = new MemcachedServer[writeToCount];
+            for (int j = 0; j < writeToCount; j++) {
+                setServers[j] = servers[(i + j) % serverCount];
+            }
+            setRequestQueues[i] = new SetRequestQueue(setServers);
             getRequestQueues[i] = new GetRequestQueue(servers[i], numThreadsPTP);
         }
     }
