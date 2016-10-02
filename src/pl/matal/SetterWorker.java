@@ -1,24 +1,12 @@
 package pl.matal;
 
-import com.sun.xml.internal.bind.v2.runtime.reflect.Accessor;
-
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
-
-import static java.lang.Thread.sleep;
 
 /**
  * Created by aleksander on 26.09.16.

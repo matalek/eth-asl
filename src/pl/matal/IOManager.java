@@ -1,7 +1,5 @@
 package pl.matal;
 
-import com.sun.org.apache.bcel.internal.generic.Select;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -10,7 +8,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
-import java.util.Objects;
 import java.util.Set;
 
 /**

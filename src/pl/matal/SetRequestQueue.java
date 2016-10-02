@@ -1,7 +1,5 @@
 package pl.matal;
 
-import java.util.List;
-
 /**
  * Created by aleksander on 26.09.16.
  */
