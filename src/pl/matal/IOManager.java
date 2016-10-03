@@ -13,7 +13,7 @@ import java.util.Set;
 /**
  * Created by aleksander on 26.09.16.
  */
-public class IOManager implements Runnable {
+public class IOManager {
     public static int MESSAGE_SIZE = 4096;
 
     private MiddlewareServer server;

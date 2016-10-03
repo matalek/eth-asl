@@ -53,12 +53,11 @@ public class MiddlewareServer {
     }
 
     public void run() {
-        // TODO: think if to create another thread
-        new Thread(ioManager).start();
         for (int i = 0; i < serverCount; i++) {
             setRequestQueues[i].startWorkers();
             getRequestQueues[i].startWorkers();
         }
+        ioManager.run();
     }
 
     public void handleRequest(Request request) {
