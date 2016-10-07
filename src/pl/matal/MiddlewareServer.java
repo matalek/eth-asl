@@ -1,12 +1,17 @@
 package pl.matal;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.List;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Created by aleksander on 26.09.16.
  */
 public class MiddlewareServer {
+    private static final String loggerName = "MiddlewareServerLogger";
+    private static Logger logger;
     private final String myIp;
     private final int myPort;
     private final int serverCount;
@@ -15,6 +20,19 @@ public class MiddlewareServer {
     private Hasher hasher;
     private SetRequestQueue[] setRequestQueues;
     private GetRequestQueue[] getRequestQueues;
+
+    public static Logger getLogger() {
+        if (logger == null) {
+            logger = Logger.getLogger(loggerName);
+            logger.setLevel(Level.INFO);
+            try {
+                logger.addHandler(new FileHandler("middlewareData.log"));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return logger;
+    }
 
     public MiddlewareServer(String myIp, int myPort, List<String> mcAddresses, int numThreadsPTP, int writeToCount) {
         this.myIp = myIp;
@@ -61,7 +79,8 @@ public class MiddlewareServer {
     }
 
     public void handleRequest(Request request) {
-        int serverNumber = hasher.setServerNumber(request, serverCount);
+        int serverNumber = hasher.getServerNumber(request, serverCount);
+        request.setTime(Request.ENQUEUE_TIME);
         if (request.getType() == Request.TYPE_GET) {
             getRequestQueues[serverNumber].add((GetRequest) request);
         } else {

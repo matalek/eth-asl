@@ -29,7 +29,10 @@ public class ResponseQueueNode {
         this.next = next;
     }
 
-    public ResponseQueueNode registerResponse() {
+    public ResponseQueueNode registerResponse(boolean success) {
+        if (!success) {
+            request.setSuccessFlag(false);
+        }
         responseCount++;
         return next;
     }

@@ -10,8 +10,8 @@ public class SetRequest extends Request {
     private int[] params;
     private String value;
 
-    public SetRequest(SocketChannel channel, String key, int[] params, String value) {
-        super(channel, key);
+    public SetRequest(SocketChannel channel, String key, int[] params, String value, boolean toLog) {
+        super(channel, key, toLog);
         this.params = params;
         this.value = value;
     }
@@ -34,7 +34,6 @@ public class SetRequest extends Request {
         return "SetRequest{" +
                 "key='" + key + '\'' +
                 "params=" + Arrays.toString(params) +
-                ", serverNumber=" + serverNumber +
                 '}';
     }
 

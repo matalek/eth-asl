@@ -22,29 +22,20 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
     }
 
     @Override
-    public void run() {
-        try {
-            connectToServers();
-            runWorker();
-        } catch (InterruptedException|IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
     protected void runWorker() throws InterruptedException {
-        // TODO: change for something else than active waiting
         while (true) {
             try {
+                // Non-blocking version of handling responses that have arrived
                 while (selector.selectNow() != 0) {
                     handleResponses();
                 }
 
+                // Non-blocking checking if there are new request in the queue
                 SetRequest request = queue.getNoBlock();
                 if (request != null) {
+                    request.setTime(Request.DEQUEUE_TIME);
                     handleRequest(request);
                 }
-
             } catch (IOException e) {
                 e.printStackTrace();
             } // TODO: maybe add finally
@@ -63,7 +54,8 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
         }
     }
 
-    private void connectToServers() throws IOException {
+    @Override
+    protected void connectToServers() throws IOException {
         selector = Selector.open();
         MemcachedServer[] servers = queue.getServers();
         serverChannels = new SocketChannel[servers.length];
@@ -72,7 +64,6 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
             serverChannels[i].register(selector, SelectionKey.OP_READ);
         }
 
-//        new Thread(new SetterResponder(this, selector, serverChannels)).start();
         responseQueue = new ResponseQueue(serverChannels.length, this);
     }
 
@@ -90,6 +81,7 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
 
         responseQueue.addRequest(request);
 
+        request.setTime(Request.SEND_TO_SERVER_TIME);
         for (SocketChannel channel : serverChannels) {
             ByteBuffer buffer = ByteBuffer.wrap(serverRequest.toString().getBytes());
             channel.write(buffer); // TODO: should I add while loop here?
@@ -106,8 +98,14 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
         } else {
             String result = new String(buffer.array()).trim();
             buffer.clear();
-            // TODO: do something with result
-            responseQueue.registerResponse(findChannelNumber(channel));
+            String[] resultLines = result.split("\r\n");
+            int channelNumber = findChannelNumber(channel);
+
+            for (int i = 0; i < resultLines.length; i++) {
+                String line = resultLines[i];
+                boolean success = line.trim().equals("STORED");
+                responseQueue.registerResponse(channelNumber, success);
+            }
         }
     }
 

@@ -1,6 +1,5 @@
-def parse_throughput(clients):
+def parse_throughput(clients, series_number = 1):
 	fbase = 'logs/microbench'
-	series_number = 1
 	for i in range(1, clients + 1):
 		fname = fbase + str(i) + '_' + str(series_number) 
 		with open(fname, 'r') as fh:
@@ -12,10 +11,10 @@ def parse_throughput(clients):
 			end = line[start:].find(' ')
 			print(line[start:start+end])
 
-def parse_response_time(clients):
+def parse_response_time(clients, series_number = 1):
 	fbase = 'logs/microbench'
 	for i in range(1, clients + 1):
-		fname = fbase + str(i) 
+		fname = fbase + str(i) + '_' + str(series_number) 
 		with open(fname, 'r') as fh:
 			lines = fh.readlines()
 			for i in range(0, len(lines)):

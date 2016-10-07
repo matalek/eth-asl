@@ -30,8 +30,8 @@ public class ResponseQueue {
         end = node;
     }
 
-    public void registerResponse(int serverNumber) {
-        positions[serverNumber] = positions[serverNumber].registerResponse();
+    public void registerResponse(int serverNumber, boolean success) {
+        positions[serverNumber] = positions[serverNumber].registerResponse(success);
         check();
     }
 
@@ -44,8 +44,16 @@ public class ResponseQueue {
 
     private void respondToClient(SetRequest request) {
         try {
-            // TODO: change response
-            worker.sendClientResponse(request, "STORED\n");
+            request.setTime(Request.RECEIVE_FROM_SERVER_TIME);
+            String clientResponse;
+            if (request.getSuccessFlag()) {
+                clientResponse = "STORED";
+            } else {
+                // TODO: what to do if there was an error
+                clientResponse = "NOT_STORED";
+            }
+            worker.sendClientResponse(request, clientResponse + "\n");
+            worker.logRequest(request);
         } catch (IOException e) {
             e.printStackTrace();
         }

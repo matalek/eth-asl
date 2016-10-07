@@ -14,10 +14,13 @@ import java.util.Set;
  * Created by aleksander on 26.09.16.
  */
 public class IOManager {
-    public static int MESSAGE_SIZE = 4096;
+    public static final int MESSAGE_SIZE = 4096;
+    private static final int PROBE_FREQUENCY = 100;
 
     private MiddlewareServer server;
     private Selector selector;
+    private int setsCounter = 0;
+    private int getsCounter = 0;
 
     public IOManager(MiddlewareServer server) {
         this.server = server;
@@ -67,6 +70,7 @@ public class IOManager {
     }
 
     private void read(SelectionKey key) throws IOException {
+        long currentTime = Request.getCurrentTime();
         SocketChannel channel = (SocketChannel) key.channel();
         ByteBuffer buffer = ByteBuffer.allocate(MESSAGE_SIZE);
         int numRead = channel.read(buffer);
@@ -76,6 +80,7 @@ public class IOManager {
             String result = new String(buffer.array()).trim();
             buffer.clear();
             Request request = createRequest(channel, result);
+            request.setTime(Request.RECEIVE_FROM_CLIENT_TIME, currentTime);
             server.handleRequest(request);
         }
     }
@@ -88,9 +93,11 @@ public class IOManager {
             for (int i = 0; i < 3; i++) {
                 params[i] = Integer.parseInt(parts[i + 2]);
             }
-            request = new SetRequest(channel, parts[1], params, parts[5]);
+            getsCounter++;
+            request = new SetRequest(channel, parts[1], params, parts[5], (getsCounter % PROBE_FREQUENCY) == 0);
         } else {
-            request = new GetRequest(channel, parts[1]);
+            setsCounter++;
+            request = new GetRequest(channel, parts[1], (setsCounter % PROBE_FREQUENCY) == 0);
         }
         return request;
     }

@@ -24,8 +24,8 @@ public abstract class RequestQueue<R> {
         return queue.take();
     }
 
+    // Non-blocking version for setter worker.
     public R getNoBlock() throws InterruptedException {
-        // TODO: Non-blocking versiob - remove after changing to not active waiting
         return queue.poll();
     }
 

@@ -20,7 +20,7 @@ def run_middleware():
 	rep = 1
 	with settings(host_string='asl11'):
 		with cd('asl-fall16-project'):
-			runbg('java -jar ./dist/middleware-matusiaa.jar -I 10.0.0.4 -p 11212 -t %d -r %d -m 10.0.0.5:11212' % (threads, rep))
+			runbg('java -jar ./dist/middleware-matusiaa.jar -l 10.0.0.4 -p 11212 -t %d -r %d -m 10.0.0.5:11212' % (threads, rep))
 
 def run_memcached():
 	with settings(host_string='asl1'):
@@ -35,9 +35,9 @@ def run_memaslap(run_time, clients):
 def run_memaslap_async(host, run_time, clients, series_number):
 	with settings(host_string=host):
 		with cd('libmemcached-1.0.18'):
-			runbg('./clients/memaslap -s 10.0.0.12:11212 -T %d -c %d -o 0.9 -S %ss -t %ss' 
+			runbg('./clients/memaslap -s 10.0.0.12:11212 -T %d -c %d -o 0.9 -S %ss -t %ss -F ../workloads/smallvalue.cfg' 
 					% (clients, clients, run_time, run_time),
-					'../logs/microbench%d_%d' % (clients, series_number))
+					'../logs/microbench%d_%s' % (clients, series_number))
 
 def stop_middleware():
 	with settings(host_string='asl11'):
@@ -62,7 +62,7 @@ def run_experiments():
 		run_memaslap(run_time, clients)
 	stop_memcached()
 
-def run_double_experiments(series_number = 1):
+def run_double_experiments(series_number = '1'):
 	run_time = 30
 	pause = 5
 	max_clients = 64

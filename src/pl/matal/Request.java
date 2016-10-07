@@ -8,14 +8,26 @@ import java.nio.channels.SocketChannel;
 public abstract class Request {
     protected SocketChannel channel;
     protected String key;
-    protected int serverNumber;
+    boolean toLog;
+
+    public static final int RECEIVE_FROM_CLIENT_TIME = 0;
+    public static final int ENQUEUE_TIME = 1;
+    public static final int DEQUEUE_TIME = 2;
+    public static final int SEND_TO_SERVER_TIME = 3;
+    public static final int RECEIVE_FROM_SERVER_TIME = 4;
+    public static final int SEND_TO_CLIENT_TIME = 5;
+
+    private long[] instrumentationTimes;
+    private boolean successFlag = true;
 
     public static final int TYPE_SET = 0;
     public static final int TYPE_GET = 1;
 
-    public Request(SocketChannel channel, String key) {
+    public Request(SocketChannel channel, String key, boolean toLog) {
         this.channel = channel;
         this.key = key;
+        this.toLog = toLog;
+        instrumentationTimes = new long[SEND_TO_CLIENT_TIME + 1];
     }
 
     public SocketChannel getChannel() {
@@ -26,21 +38,43 @@ public abstract class Request {
         return key;
     }
 
-    public int getServerNumber() {
-        return serverNumber;
+    public boolean isToLog() {
+        return toLog;
     }
 
-    public void setServerNumber(int serverNumber) {
-        this.serverNumber = serverNumber;
+    public void setSuccessFlag(boolean successFlag) {
+        this.successFlag = successFlag;
+    }
+
+    public boolean getSuccessFlag() {
+        return successFlag;
     }
 
     public abstract int getType();
+
+    public String getLogString() {
+        long tMw = instrumentationTimes[SEND_TO_CLIENT_TIME] - instrumentationTimes[RECEIVE_FROM_CLIENT_TIME];
+        long tQueue = instrumentationTimes[DEQUEUE_TIME] - instrumentationTimes[ENQUEUE_TIME];
+        long tServer = instrumentationTimes[RECEIVE_FROM_SERVER_TIME] - instrumentationTimes[SEND_TO_SERVER_TIME];
+        return tMw + " " + tQueue + " " + tServer + " " + (successFlag ? 1 : 0);
+    }
+
+    public void setTime(int timeNumber, long time) {
+        instrumentationTimes[timeNumber] = time;
+    }
+
+    public void setTime(int timeNumber) {
+        setTime(timeNumber, getCurrentTime());
+    }
+
+    public static long getCurrentTime() {
+        return System.nanoTime() / 1000;
+    }
 
     @Override
     public String toString() {
         return "Request{" +
                 "key='" + key + '\'' +
-                ", serverNumber=" + serverNumber +
                 '}';
     }
 }

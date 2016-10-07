@@ -6,7 +6,7 @@ package pl.matal;
 public class Hasher {
     private static final int BASE = 257;
 
-    public int setServerNumber(Request request, int serverCount) {
+    public int getServerNumber(Request request, int serverCount) {
         int hash = 0;
         for (char c : request.getKey().toCharArray()) {
             hash = hash * BASE + (int) c;
@@ -21,8 +21,6 @@ public class Hasher {
         if (number == serverCount) {
             number = serverCount - 1;
         }
-        // TODO: is that still necessary?
-        request.setServerNumber(number);
         return number;
     }
 }

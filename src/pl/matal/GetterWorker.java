@@ -18,16 +18,20 @@ public class GetterWorker extends Worker<GetRequestQueue, GetRequest> {
     }
 
     @Override
-    public void run() {
-        try {
-            connectToServer();
-            runWorker();
-        } catch (InterruptedException|IOException e) {
-            e.printStackTrace();
+    protected void runWorker() throws InterruptedException {
+        while (true) {
+            GetRequest request = queue.get();
+            request.setTime(Request.DEQUEUE_TIME);
+            try {
+                handleRequest(request);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } // TODO: maybe add finally
         }
     }
 
-    private void connectToServer() throws IOException {
+    @Override
+    protected void connectToServers() throws IOException {
         Socket socket = queue.getServer().connectSync();
         out = new PrintWriter(socket.getOutputStream(), true);
         in = new BufferedReader(
@@ -39,10 +43,14 @@ public class GetterWorker extends Worker<GetRequestQueue, GetRequest> {
         StringBuilder serverRequest = new StringBuilder("get ");
         serverRequest.append(request.getKey()).append("\r");
 
-        // TODO: maybe we want to store value in the object
-        // TODO: think about number of lines
+        request.setTime(Request.SEND_TO_SERVER_TIME);
         String serverResponse = sendServerRequest(out, in, serverRequest.toString());
+        request.setTime(Request.RECEIVE_FROM_SERVER_TIME);
+        if (serverResponse.split("\n")[0].contains("ERROR")) {
+            request.setSuccessFlag(false);
+        }
         sendClientResponse(request, serverResponse);
+        logRequest(request);
     }
 
     private String sendServerRequest(PrintWriter out, BufferedReader in, String serverRequest)
@@ -52,7 +60,7 @@ public class GetterWorker extends Worker<GetRequestQueue, GetRequest> {
         while (true) {
             String line = in.readLine();
             serverResponse.append(line).append("\n");
-            if (line.equals("END")) {
+            if (line.equals("END") || line.contains("ERROR")) {
                 break;
             }
         }
