@@ -13,7 +13,7 @@ def deploy():
 			run('ant')
 
 def copy_parse():
-	for host in ['asl2', 'asl3']:
+	for host in ['asl2', 'asl3', 'asl4']:
 		local('scp parse_logs.py %s:~' % host)	
 
 def run_middleware(threads, rep):
@@ -80,8 +80,8 @@ def run_baseline_experiments(series_number = '1'):
 	stop_memcached()
 
 def run_stability_experiment():
-	run_time = 10
-	stats_time = 1
+	run_time = 60 * 60
+	stats_time = 10
 	pause = 10
 	threads = 3
 	rep = 3
