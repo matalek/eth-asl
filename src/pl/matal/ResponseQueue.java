@@ -21,11 +21,14 @@ public class ResponseQueue {
         ResponseQueueNode node = new ResponseQueueNode(request, null);
         if (start == null) {
             start = node;
-            for (int i = 0; i < serversNumber; i++) {
-                positions[i] = start;
-            }
+
         } else {
             end.setNext(node);
+        }
+        for (int i = 0; i < serversNumber; i++) {
+            if (positions[i] == null) {
+                positions[i] = node;
+            }
         }
         end = node;
     }
