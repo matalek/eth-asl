@@ -1,64 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def parse_baseline_throughput(clients, vm_number, series_number = 1):
-	fbase = 'logs/microbench'
-	res = []
-	for i in range(1, clients + 1):
-		fname = fbase + str(i) + '_' + str(series_number) 
-		with open(fname, 'r') as fh:
-			for line in fh:
-			    pass
-			last = line
-			pat = 'TPS: '
-			start = last.find(pat) + len(pat)
-			end = line[start:].find(' ')
-			res.append([line[start:start+end]])
-	write_to_file('throughput', vm_number, series_number, res);
-
-def parse_baseline_response_time(clients, vm_number, series_number = 1):
-	fbase = 'logs/microbench'
-	res = []
-	for i in range(1, clients + 1):
-		fname = fbase + str(i) + '_' + str(series_number) 
-		with open(fname, 'r') as fh:
-			lines = fh.readlines()
-			for i in range(0, len(lines)):
-				line = lines[i]
-				if line.find('Total Statistics (') != -1:
-					i += 3
-					line = lines[i]
-					line = line.replace('Avg:', '')
-					line = line.replace(' ', '') 
-					avg = line.replace('\n', '')
-
-					i += 2
-					line = lines[i]
-					line = line.replace('Std:', '')
-					line = line.replace(' ', '') 
-					line = line.replace('\n', '')
-					res.append([avg, line])
-					break
-				i += 1
-	write_to_file('response_time', vm_number, series_number, res);
-
-def write_to_file(name_start, vm_number, series_number, content):
-	fres = 'logs/' + name_start + '_' + str(series_number) + '_' + vm_number
-	with open(fres, 'w+') as f:
-		for val in content:
-			for el in val:
-				f.write(el + ' ')
-			f.write('\n')
-
-def parse_baseline(clients, vm_number):
-	series_cnt = 5
-	for i in range(1, series_cnt + 1):
-		parse_baseline_throughput(clients, vm_number, i)
-		parse_baseline_response_time(clients, vm_number, i)
-
-
 def combine_baseline():
-	vms = ['1']
+	vms = ['1', '2']
 	series_count = 5
 	fbase = 'logs/microbench'
 	experiments_cnt = 64;
@@ -94,7 +38,7 @@ def combine_baseline():
 				f.write(str(throughputs[j]) + ' ' + str(response_times[j]) + ' ' + str(response_times_std[j]) + '\n')
 
 def draw_baseline_plots():
-	series_cnt = 3
+	series_cnt = 5
 	experiments_cnt = 64;
 	fbase = 'logs/microbench'
 	results = [[], [[], []]]
@@ -124,7 +68,7 @@ def draw_baseline_plots():
 		avgs[0].append(new_results[0][i].mean())
 		avgs[1].append(new_results[1][0][i].mean())
 		stds[1].append(new_results[1][1][i].mean())
-		print(new_results[1][1][i].mean())
+		print(new_results[0][i].mean())
 		x.append((i+1)*2)
 
 	plt.plot(x, avgs[0])

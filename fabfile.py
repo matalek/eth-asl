@@ -14,7 +14,12 @@ def deploy():
 
 def copy_parse():
 	for host in ['asl2', 'asl3', 'asl4']:
-		local('scp parse_logs.py %s:~' % host)	
+		local('scp parse_logs_vms.py %s:~' % host)
+
+def import_logs():
+	for host in ['asl2', 'asl3']:
+		local('scp %s:~/logs/throughput* ./logs/' % host)
+		local('scp %s:~/logs/response_time* ./logs/' % host)
 
 def run_middleware(threads, rep):
 	with settings(host_string='asl11'):
@@ -25,12 +30,6 @@ def run_middleware(threads, rep):
 def run_memcached(host='asl1'):
 	with settings(host_string=host):
 		runbg('memcached -p 11212 -t 1')
-
-# def run_memaslap(run_time, clients):
-# 	with settings(host_string='asl2'):
-# 		with cd('libmemcached-1.0.18'):
-# 			run('./clients/memaslap -s 10.0.0.12:11212 -T %d -c %d -o 0.9 -S %s -t %s > ../logs/microbench%d' 
-# 					% (clients, clients, run_time, run_time, clients))
 
 def run_memaslap_async(host, sut, run_time, stats_time, clients, output):
 	with settings(host_string=host):

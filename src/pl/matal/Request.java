@@ -8,7 +8,7 @@ import java.nio.channels.SocketChannel;
 public abstract class Request {
     protected SocketChannel channel;
     protected String key;
-    boolean toLog;
+    private boolean toLog;
 
     public static final int RECEIVE_FROM_CLIENT_TIME = 0;
     public static final int ENQUEUE_TIME = 1;

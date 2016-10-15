@@ -1,17 +1,17 @@
 package pl.matal;
 
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by aleksander on 26.09.16.
  */
 public abstract class RequestQueue<R> {
-    protected BlockingDeque<R> queue;
+    protected BlockingQueue<R> queue;
     protected Worker[] workers;
 
     public RequestQueue() {
-        this.queue = new LinkedBlockingDeque<>();
+        this.queue = new LinkedBlockingQueue<R>();
     }
 
     public void add(R request) {

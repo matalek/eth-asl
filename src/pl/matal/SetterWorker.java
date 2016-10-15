@@ -70,13 +70,21 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
     @Override
     protected void handleRequest(SetRequest request) throws IOException {
         // TODO: add handling for delete
-        StringBuilder serverRequest =  new StringBuilder("set ");
-        serverRequest.append(request.getKey()).append(" ");
-        for (int i = 0; i < 3; i++) {
-            serverRequest.append(request.getParams()[i]).append(" ");
+        StringBuilder serverRequest =  new StringBuilder("");
+        if (request.isDelete()) {
+            serverRequest.append("delete ");
+        } else {
+            serverRequest.append("set ");
         }
-        serverRequest.append("\r\n");
-        serverRequest.append(request.getValue());
+        serverRequest.append(request.getKey()).append(" ");
+
+        if (!request.isDelete()) {
+            for (int i = 0; i < 3; i++) {
+                serverRequest.append(request.getParams()[i]).append(" ");
+            }
+            serverRequest.append("\r\n");
+            serverRequest.append(request.getValue());
+        }
         serverRequest.append("\r\n");
 
         responseQueue.addRequest(request);

@@ -20,6 +20,9 @@ public class MiddlewareServer {
     private Hasher hasher;
     private SetRequestQueue[] setRequestQueues;
     private GetRequestQueue[] getRequestQueues;
+    private long serverStats[];
+    private int serverStatsCounter;
+    private final int SERVER_STATS_FREQUENCY = 100000;
 
     public static Logger getLogger() {
         if (logger == null) {
@@ -50,6 +53,7 @@ public class MiddlewareServer {
             counter++;
         }
 
+        serverStats = new long[serverCount];
         setRequestQueues = new SetRequestQueue[serverCount];
         getRequestQueues = new GetRequestQueue[serverCount];
         for (int i = 0; i < serverCount; i++) {
@@ -80,11 +84,27 @@ public class MiddlewareServer {
 
     public void handleRequest(Request request) {
         int serverNumber = hasher.getServerNumber(request, serverCount);
+        serverStats[serverNumber]++;
+        serverStatsCounter++;
+        if (serverStatsCounter % SERVER_STATS_FREQUENCY == 0) {
+            serverStatsCounter = 0;
+            writeServerStats();
+        }
         request.setTime(Request.ENQUEUE_TIME);
         if (request.getType() == Request.TYPE_GET) {
             getRequestQueues[serverNumber].add((GetRequest) request);
         } else {
             setRequestQueues[serverNumber].add((SetRequest) request);
         }
+    }
+
+    // Auxiliary function to write server distribution statistics in order to
+    // evaluate hash function. Used for the report in milestone 1.
+    private void writeServerStats() {
+        String res = "";
+        for (long stat : serverStats) {
+            res += stat + " ";
+        }
+        System.out.println(res);
     }
 }

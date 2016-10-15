@@ -1,5 +1,7 @@
 package pl.matal;
 
+import java.lang.reflect.Array;
+
 /**
  * Created by aleksander on 26.09.16.
  */

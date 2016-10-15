@@ -75,7 +75,9 @@ public class IOManager {
         ByteBuffer buffer = ByteBuffer.allocate(MESSAGE_SIZE);
         int numRead = channel.read(buffer);
         if (numRead == -1) {
+            // Client closed the connection.
             key.cancel();
+            channel.close();
         } else {
             String result = new String(buffer.array()).trim();
             buffer.clear();
@@ -88,18 +90,35 @@ public class IOManager {
     private Request createRequest(SocketChannel channel, String input) {
         Request request;
         String[] parts = input.split("\\s+");
-        if (!parts[0].equals("get")) {
-            int[] params = new int[3];
-            for (int i = 0; i < 3; i++) {
-                params[i] = Integer.parseInt(parts[i + 2]);
-            }
+        if (parts[0].equals("get")) {
             getsCounter++;
-            request = new SetRequest(channel, parts[1], params, parts[5], (getsCounter % PROBE_FREQUENCY) == 0);
+            boolean isToLog = false;
+            if (setsCounter % PROBE_FREQUENCY == 0) {
+                isToLog = true;
+                setsCounter = 0;
+            }
+            request = new GetRequest(channel, parts[1], isToLog);
         } else {
+            boolean isDelete = parts[0].equals("delete");
+            int[] params = new int[3];
+            if (!isDelete) {
+                for (int i = 0; i < 3; i++) {
+                    params[i] = Integer.parseInt(parts[i + 2]);
+                }
+            }
             setsCounter++;
-            request = new GetRequest(channel, parts[1], (setsCounter % PROBE_FREQUENCY) == 0);
+            boolean isToLog = false;
+            if (setsCounter % PROBE_FREQUENCY == 0) {
+                isToLog = true;
+                getsCounter = 0;
+            }
+
+            if (isDelete) {
+                request = new SetRequest(channel, parts[1], params, "", isToLog, true);
+            } else {
+                request = new SetRequest(channel, parts[1], params, parts[5], isToLog, false);
+            }
         }
         return request;
     }
-
 }

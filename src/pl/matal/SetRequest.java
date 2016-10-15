@@ -9,11 +9,13 @@ import java.util.Arrays;
 public class SetRequest extends Request {
     private int[] params;
     private String value;
+    private boolean isDelete;
 
-    public SetRequest(SocketChannel channel, String key, int[] params, String value, boolean toLog) {
+    public SetRequest(SocketChannel channel, String key, int[] params, String value, boolean toLog, boolean isDelete) {
         super(channel, key, toLog);
         this.params = params;
         this.value = value;
+        this.isDelete = isDelete;
     }
 
     public int[] getParams() {
@@ -24,18 +26,12 @@ public class SetRequest extends Request {
         return value;
     }
 
+    public boolean isDelete() {
+        return isDelete;
+    }
+
     @Override
     public int getType() {
         return TYPE_SET;
     }
-
-    @Override
-    public String toString() {
-        return "SetRequest{" +
-                "key='" + key + '\'' +
-                "params=" + Arrays.toString(params) +
-                '}';
-    }
-
-
 }
