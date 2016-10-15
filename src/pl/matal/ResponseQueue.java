@@ -6,6 +6,8 @@ import java.io.IOException;
  * Created by aleksander on 01.10.16.
  */
 public class ResponseQueue {
+    public static final String SET_SUCCESS_RESPONSE = "STORED";
+    public static final String DELETE_SUCCESS_RESPONSE = "DELETED";
     private int serversNumber;
     private SetterWorker worker;
     private ResponseQueueNode start, end;
@@ -33,8 +35,14 @@ public class ResponseQueue {
         end = node;
     }
 
-    public void registerResponse(int serverNumber, boolean success) {
-        positions[serverNumber] = positions[serverNumber].registerResponse(success);
+    public void registerResponse(int serverNumber, String response) {
+        // We assume that client sends correct requests.
+        // Therefore, positions[serverNumber] here should always be not null.
+        // But we check that just in case.
+        if (positions[serverNumber] == null) {
+            return;
+        }
+        positions[serverNumber] = positions[serverNumber].registerResponse(response);
         check();
     }
 
@@ -50,10 +58,13 @@ public class ResponseQueue {
             request.setTime(Request.RECEIVE_FROM_SERVER_TIME);
             String clientResponse;
             if (request.getSuccessFlag()) {
-                clientResponse = "STORED";
+                if (request.isDelete()) {
+                    clientResponse = DELETE_SUCCESS_RESPONSE;
+                } else {
+                    clientResponse = SET_SUCCESS_RESPONSE;
+                }
             } else {
-                // TODO: what to do if there was an error
-                clientResponse = "NOT_STORED";
+                clientResponse = request.getErrorMessage();
             }
             worker.sendClientResponse(request, clientResponse + "\n");
             worker.logRequest(request);

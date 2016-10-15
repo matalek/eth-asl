@@ -25,12 +25,12 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
     protected void runWorker() throws InterruptedException {
         while (true) {
             try {
-                // Non-blocking version of handling responses that have arrived
-                while (selector.selectNow() != 0) {
+                // Non-blocking version of handling responses that have arrived.
+                if (selector.selectNow() != 0) {
                     handleResponses();
                 }
 
-                // Non-blocking checking if there are new request in the queue
+                // Non-blocking checking if there are new request in the queue.
                 SetRequest request = queue.getNoBlock();
                 if (request != null) {
                     request.setTime(Request.DEQUEUE_TIME);
@@ -38,8 +38,7 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-            } // TODO: maybe add finally
-
+            }
         }
     }
 
@@ -69,7 +68,6 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
 
     @Override
     protected void handleRequest(SetRequest request) throws IOException {
-        // TODO: add handling for delete
         StringBuilder serverRequest =  new StringBuilder("");
         if (request.isDelete()) {
             serverRequest.append("delete ");
@@ -92,7 +90,7 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
         request.setTime(Request.SEND_TO_SERVER_TIME);
         for (SocketChannel channel : serverChannels) {
             ByteBuffer buffer = ByteBuffer.wrap(serverRequest.toString().getBytes());
-            channel.write(buffer); // TODO: should I add while loop here?
+            channel.write(buffer);
             buffer.clear();
         }
     }
@@ -111,8 +109,7 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
 
             for (int i = 0; i < resultLines.length; i++) {
                 String line = resultLines[i];
-                boolean success = line.trim().equals("STORED");
-                responseQueue.registerResponse(channelNumber, success);
+                responseQueue.registerResponse(channelNumber, line.trim());
             }
         }
     }

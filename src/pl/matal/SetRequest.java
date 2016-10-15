@@ -10,6 +10,7 @@ public class SetRequest extends Request {
     private int[] params;
     private String value;
     private boolean isDelete;
+    private String errorMessage;
 
     public SetRequest(SocketChannel channel, String key, int[] params, String value, boolean toLog, boolean isDelete) {
         super(channel, key, toLog);
@@ -28,6 +29,18 @@ public class SetRequest extends Request {
 
     public boolean isDelete() {
         return isDelete;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        // We want to return the first ERROR message. If we got a NOT_STORED response, and later ERROR response,
+        // we respond with ERROR.
+        if (this.errorMessage == null || !this.errorMessage.contains("ERROR")) {
+            this.errorMessage = errorMessage;
+        }
     }
 
     @Override

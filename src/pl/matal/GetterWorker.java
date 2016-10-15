@@ -26,7 +26,7 @@ public class GetterWorker extends Worker<GetRequestQueue, GetRequest> {
                 handleRequest(request);
             } catch (IOException e) {
                 e.printStackTrace();
-            } // TODO: maybe add finally
+            }
         }
     }
 

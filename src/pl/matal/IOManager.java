@@ -93,9 +93,9 @@ public class IOManager {
         if (parts[0].equals("get")) {
             getsCounter++;
             boolean isToLog = false;
-            if (setsCounter % PROBE_FREQUENCY == 0) {
+            if (getsCounter % PROBE_FREQUENCY == 0) {
                 isToLog = true;
-                setsCounter = 0;
+                getsCounter = 0;
             }
             request = new GetRequest(channel, parts[1], isToLog);
         } else {
@@ -110,7 +110,7 @@ public class IOManager {
             boolean isToLog = false;
             if (setsCounter % PROBE_FREQUENCY == 0) {
                 isToLog = true;
-                getsCounter = 0;
+                setsCounter = 0;
             }
 
             if (isDelete) {

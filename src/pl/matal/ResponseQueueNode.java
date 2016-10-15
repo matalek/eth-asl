@@ -29,9 +29,18 @@ public class ResponseQueueNode {
         this.next = next;
     }
 
-    public ResponseQueueNode registerResponse(boolean success) {
+    // If error message is empty, request has succeeded.
+    public ResponseQueueNode registerResponse(String response) {
+        boolean success;
+        if (request.isDelete()) {
+            // We assume that if the key to be deleted was not found, then it's an error.
+            success = response.equals(ResponseQueue.DELETE_SUCCESS_RESPONSE);
+        } else {
+            success = response.equals(ResponseQueue.SET_SUCCESS_RESPONSE);
+        }
         if (!success) {
             request.setSuccessFlag(false);
+            request.setErrorMessage(response);
         }
         responseCount++;
         return next;
