@@ -12,20 +12,30 @@ def deploy():
 			run('git pull')
 			run('ant')
 
+def clear_keys():
+	for host_number in [1, 2, 3, 4, 5, 6, 11]:
+		local('ssh-keygen -f "/home/aleksander/.ssh/known_hosts" \
+			-R matusiaaforaslvms%d.westeurope.cloudapp.azure.com' % host_number)
+
 def copy_parse():
 	for host in ['asl2', 'asl3', 'asl4']:
 		local('scp parse_logs_vms.py %s:~' % host)
 
-def import_logs():
+def import_baseline_logs():
 	for host in ['asl2', 'asl3']:
 		local('scp %s:~/logs/throughput* ./logs/' % host)
 		local('scp %s:~/logs/response_time* ./logs/' % host)
+
+def import_stability_logs():
+	for host in ['asl2', 'asl3', 'asl4']:
+		local('scp %s:~/logs/stability_parsed* ./logs/' % host)
 
 def run_middleware(threads, rep):
 	with settings(host_string='asl11'):
 		with cd('asl-fall16-project'):
 			runbg('java -jar ./dist/middleware-matusiaa.jar -l 10.0.0.11 -p 11212 \
-				-t %d -r %d -m 10.0.0.12:11212 10.0.0.14:11212 10.0.0.4:11212' % (threads, rep))
+				-t %d -r %d -m 10.0.0.12:11212 10.0.0.14:11212 10.0.0.4:11212' % (threads, rep),
+				'../logs/servers_distribution.log')
 
 def run_memcached(host='asl1'):
 	with settings(host_string=host):
@@ -42,13 +52,17 @@ def stop_middleware():
 	with settings(host_string='asl11'):
 		run('pkill -f middleware')
 
-def stop_memcached(host='asl1'):
+def stop_memcached(host):
 	with settings(host_string=host):
 		run('sudo pkill -f memcached')
 
+def stop_all_memcached():
+	for host in ['asl1', 'asl5', 'asl6']:
+		stop_memcached(host)
+
 def stop_all():
 	stop_middleware()
-	stop_memcached()
+	stop_all_memcached()
 
 def runbg(cmd, output_file=None, sockname="dtach"):
 	if output_file:
@@ -82,7 +96,7 @@ def run_stability_experiment():
 	run_time = 60 * 60
 	stats_time = 10
 	pause = 10
-	threads = 3
+	threads = 16
 	rep = 3
 	middleware_server = '10.0.0.11'
 	run_memcached('asl1')
@@ -97,3 +111,12 @@ def run_stability_experiment():
 	stop_memcached('asl1')
 	stop_memcached('asl5')
 	stop_memcached('asl6')
+
+def compute_stability():
+	hosts = [['asl2', 1], ['asl3', 2], ['asl4',3]]
+	for host in hosts:
+		with settings(host_string=host[0]):
+			run('python3 -c "from parse_logs_vms import *; parse_stability(%d)"' % host[1])
+	import_stability_logs()
+	local('python3 -c "from parse_logs import *; combine_stability()"')
+	local('python3 -c "from parse_logs import *; draw_stability_plots()"')

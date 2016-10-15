@@ -41,7 +41,10 @@ def parse_baseline_response_time(clients, vm_number, series_number = 1):
 
 def write_to_file(name_start, vm_number, series_number, content):
 	fres = 'logs/' + name_start + '_' + str(series_number) + '_' + vm_number
-	with open(fres, 'w+') as f:
+	write_to_named_file(fres)
+
+def write_to_named_file(fname, content):
+	with open(fname, 'w+') as f:
 		for val in content:
 			for el in val:
 				f.write(el + ' ')
@@ -52,3 +55,18 @@ def parse_baseline(clients, vm_number):
 	for i in range(1, series_cnt + 1):
 		parse_baseline_throughput(clients, vm_number, i)
 		parse_baseline_response_time(clients, vm_number, i)
+
+def parse_stability(vm_number):
+	fname = 'logs/stability.log'
+	data = []
+	with open(fname, 'r') as fh:
+		lines = fh.readlines()
+		i = 0
+		while i < len(lines):
+			line = lines[i]
+			if line.find('Total Statistics') != -1 and line.find('Total Statistics (') == -1:
+				i += 2
+				line = lines[i].split()
+				data.append([line[3], line[8], line[9]])
+			i += 1
+	write_to_named_file('logs/stability_parsed_%d.log' % vm_number, data)

@@ -78,24 +78,64 @@ def draw_baseline_plots():
 	plt.errorbar(x, avgs[1], stds[1])
 	plt.savefig('baseline_response_time.png')
 
+def combine_stability():
+	vms = ['1', '2', '3']
+	fbase = 'logs/stability_parsed'
+	response_times = []
+	response_times_std = []
+	throughputs = []
+	i = 0
+	for vm in vms:
+		with open(fbase + '_' + vm + '.log', 'r') as f:
+			j = 0
+			for line in f:
+				line = line.split(' ')
+				if i == 0:
+					throughputs.append(int(line[0]))
+					response_times.append(int(line[1]))
+					response_times_std.append(float(line[2]))
+				else:
+					throughputs[j] += int(line[0])
+					response_times[j] += int(line[1])
+					response_times_std[j] += float(line[2])
+				j += 1
+		i += 1
 
-def parse_stability():
-	fname = 'logs/stability.log'
+	for j in range(0, len(response_times)):
+		response_times[j] /= len(vms)
+		response_times_std[j] /= len(vms)
+
+	with open(fbase + '.log', 'w+') as f:
+		for j in range(0, len(throughputs)):
+			f.write(str(throughputs[j]) + ' ' + str(response_times[j]) + ' ' + str(response_times_std[j]) + '\n')
+
+def draw_stability_plots():
+	fbase = 'logs/stability_parsed.log'
+	results = [[], [[], []]]
+
 	tps = []
 	response_times = []
-	with open(fname, 'r') as fh:
-		lines = fh.readlines()
+	response_times_std = []
+	x = []
+	with open(fbase, 'r') as f:
 		i = 0
-		while i < len(lines):
-			line = lines[i]
-			if line.find('Total Statistics') != -1 and line.find('Total Statistics (') == -1:
-				i += 2
-				line = lines[i].split()
-				tps.append(line[3])
-				response_times.append(line[8])
-			i += 1
-	for t in tps:
-		print(t)
-	print()
-	for t in response_times:
-		print(t)
+		for line in f:
+			line = line.split(' ')
+			tps.append(int(line[0]))
+			response_times.append(float(line[1]))
+			response_times_std.append(float(line[2]))
+			x.append((i+1)*10)
+			i+=1
+
+	plt.ylim([0, 15000])
+	plt.xlim([0, 3600])
+	plt.grid(True)
+	plt.plot(x, tps)
+	plt.savefig('stability_throughput.png')
+	plt.clf()
+
+	plt.ylim([0, 50000])
+	plt.xlim([0, 3600])
+	plt.grid(True)
+	plt.errorbar(x, response_times, response_times_std)
+	plt.savefig('stability_response_time.png')
