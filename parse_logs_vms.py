@@ -64,9 +64,22 @@ def parse_stability(vm_number):
 		i = 0
 		while i < len(lines):
 			line = lines[i]
-			if line.find('Total Statistics') != -1 and line.find('Total Statistics (') == -1:
-				i += 2
-				line = lines[i].split()
-				data.append([line[3], line[8], line[9]])
+			if line.find('Total Statistics') != -1:
+				if line.find('Total Statistics (') == -1:
+					i += 2
+					line = lines[i].split()
+					data.append([line[3], line[8], line[9]])
+				else:
+					# Total average response time and std
+					i += 3
+					response_time = lines[i].split()[1]
+					i += 1
+					response_time_std = lines[i].split()[1]
 			i += 1
+	# For whole experiment
+	pat = 'TPS: '
+	start = line.find(pat) + len(pat)
+	end = line[start:].find(' ')
+	tps = line[start:start+end]
+	data.append([tps, response_time, response_time_std])
 	write_to_named_file('logs/stability_parsed_%d.log' % vm_number, data)

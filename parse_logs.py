@@ -68,16 +68,23 @@ def draw_baseline_plots():
 		avgs[0].append(new_results[0][i].mean())
 		avgs[1].append(new_results[1][0][i].mean())
 		stds[1].append(new_results[1][1][i].mean())
-		print(new_results[0][i].mean())
+		if (i == 31):
+			print(str(avgs[0][-1]) + ' ' + str(avgs[1][-1]) + ' ' + str(stds[1][-1]))
 		x.append((i+1)*2)
 
 	plt.plot(x, avgs[0])
 	plt.xlim([0, 128])
+	plt.title('Aggregated throughput')
+	plt.ylabel('Throughput [ops/s]')
+	plt.xlabel('Time [s]')
 	plt.savefig('baseline_throughput.png')
 	plt.clf()
 
 	plt.errorbar(x, avgs[1], stds[1])
 	plt.xlim([0, 128])
+	plt.title('Response time')
+	plt.ylabel('Response time [us]')
+	plt.xlabel('Time [s]')
 	plt.savefig('baseline_response_time.png')
 
 def combine_stability():
@@ -129,17 +136,41 @@ def draw_stability_plots():
 			x.append((i+1)*10)
 			i+=1
 
-	plt.ylim([0, 15000])
+	# Remove last, since it's total data
+	total_tps = tps[-1]
+	total_response_time = response_times[-1]
+	total_response_time_std = response_times_std[-1]
+	print(str(total_tps) + ' ' + str(total_response_time) + ' ' + str(total_response_time_std))
+	del tps[-1]
+	del response_times[-1]
+	del response_times_std[-1]
+	del x[-1]
+
+	plt.ylim([0, 17000])
 	plt.xlim([0, 3600])
 	plt.grid(True)
 	plt.plot(x, tps)
+	plt.title('Aggregated throughput')
+	plt.ylabel('Throughput [ops/s]')
+	plt.xlabel('Time [s]')
 	plt.savefig('stability_throughput.png')
 	plt.clf()
 
-	plt.ylim([0, 50000])
+	plt.ylim([0, 40000])
 	plt.xlim([0, 3600])
 	plt.grid(True)
-	plt.errorbar(x, response_times, response_times_std)
+	# plt.errorbar(x, response_times, response_times_std)
+	plt.plot(x, response_times)
+	response_times_minus = []
+	response_times_plus = []
+	for i in range(0, len(response_times)):
+		response_times_minus.append(response_times[i] - response_times_std[i])
+		response_times_plus.append(response_times[i] + response_times_std[i])
+	plt.plot(x, response_times_minus)
+	plt.plot(x, response_times_plus)
+	plt.title('Response time')
+	plt.ylabel('Response time [us]')
+	plt.xlabel('Time [s]')
 	plt.savefig('stability_response_time.png')
 
 def draw_distribution_plot():
