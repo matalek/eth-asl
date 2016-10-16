@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -89,7 +90,8 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
 
         request.setTime(Request.SEND_TO_SERVER_TIME);
         for (SocketChannel channel : serverChannels) {
-            ByteBuffer buffer = ByteBuffer.wrap(serverRequest.toString().getBytes());
+            buffer.put(serverRequest.toString().getBytes());
+            buffer.flip();
             channel.write(buffer);
             buffer.clear();
         }
@@ -97,12 +99,12 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
 
     private void read(SelectionKey key) throws IOException {
         SocketChannel channel = (SocketChannel) key.channel();
-        ByteBuffer buffer = ByteBuffer.allocate(IOManager.MESSAGE_SIZE);
         int numRead = channel.read(buffer);
         if (numRead == -1) {
             key.cancel();
+            buffer.clear();
         } else {
-            String result = new String(buffer.array()).trim();
+            String result = new String(Arrays.copyOf(buffer.array(), numRead)).trim();
             buffer.clear();
             String[] resultLines = result.split("\r\n");
             int channelNumber = findChannelNumber(channel);
@@ -122,5 +124,4 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
         }
         return -1;
     }
-
 }

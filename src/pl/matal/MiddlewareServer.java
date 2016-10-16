@@ -16,7 +16,7 @@ public class MiddlewareServer {
     private final int myPort;
     private final int serverCount;
 
-    private IOManager ioManager;
+    private InputManager inputManager;
     private Hasher hasher;
     private SetRequestQueue[] setRequestQueues;
     private GetRequestQueue[] getRequestQueues;
@@ -40,7 +40,7 @@ public class MiddlewareServer {
     public MiddlewareServer(String myIp, int myPort, List<String> mcAddresses, int numThreadsPTP, int writeToCount) {
         this.myIp = myIp;
         this.myPort = myPort;
-        ioManager = new IOManager(this);
+        inputManager = new InputManager(this);
         hasher = new Hasher();
 
         serverCount = mcAddresses.size();
@@ -79,7 +79,7 @@ public class MiddlewareServer {
             setRequestQueues[i].startWorkers();
             getRequestQueues[i].startWorkers();
         }
-        ioManager.run();
+        inputManager.run();
     }
 
     public void handleRequest(Request request) {

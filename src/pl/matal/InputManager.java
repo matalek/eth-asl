@@ -13,17 +13,19 @@ import java.util.Set;
 /**
  * Created by aleksander on 26.09.16.
  */
-public class IOManager {
-    public static final int MESSAGE_SIZE = 4096;
+public class InputManager {
+    public static final int MESSAGE_SIZE = 1088;
     private static final int PROBE_FREQUENCY = 100;
 
     private MiddlewareServer server;
     private Selector selector;
     private int setsCounter = 0;
     private int getsCounter = 0;
+    private ByteBuffer buffer;
 
-    public IOManager(MiddlewareServer server) {
+    public InputManager(MiddlewareServer server) {
         this.server = server;
+        buffer = ByteBuffer.allocate(MESSAGE_SIZE);
     }
 
     public void run() {
@@ -72,12 +74,12 @@ public class IOManager {
     private void read(SelectionKey key) throws IOException {
         long currentTime = Request.getCurrentTime();
         SocketChannel channel = (SocketChannel) key.channel();
-        ByteBuffer buffer = ByteBuffer.allocate(MESSAGE_SIZE);
         int numRead = channel.read(buffer);
         if (numRead == -1) {
             // Client closed the connection.
             key.cancel();
             channel.close();
+            buffer.clear();
         } else {
             String result = new String(buffer.array()).trim();
             buffer.clear();

@@ -8,9 +8,11 @@ import java.nio.ByteBuffer;
  */
 public abstract class Worker<Q extends RequestQueue<R>, R extends Request> implements Runnable {
     protected Q queue;
+    protected ByteBuffer buffer;
 
     public Worker(Q queue) {
         this.queue = queue;
+        buffer = ByteBuffer.allocate(InputManager.MESSAGE_SIZE);
     }
 
     @Override
@@ -24,9 +26,11 @@ public abstract class Worker<Q extends RequestQueue<R>, R extends Request> imple
     }
 
     public void sendClientResponse(Request request, String clientResponse) throws IOException {
-        ByteBuffer buffer = ByteBuffer.wrap(clientResponse.getBytes());
+        buffer.put(clientResponse.getBytes());
+        buffer.flip();
         request.setTime(Request.SEND_TO_CLIENT_TIME);
         request.getChannel().write(buffer);
+        buffer.clear();
     }
 
     protected abstract void runWorker() throws InterruptedException;

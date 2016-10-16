@@ -72,10 +72,12 @@ def draw_baseline_plots():
 		x.append((i+1)*2)
 
 	plt.plot(x, avgs[0])
+	plt.xlim([0, 128])
 	plt.savefig('baseline_throughput.png')
 	plt.clf()
 
 	plt.errorbar(x, avgs[1], stds[1])
+	plt.xlim([0, 128])
 	plt.savefig('baseline_response_time.png')
 
 def combine_stability():
