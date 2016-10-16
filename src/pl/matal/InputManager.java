@@ -7,6 +7,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -81,7 +82,7 @@ public class InputManager {
             channel.close();
             buffer.clear();
         } else {
-            String result = new String(buffer.array()).trim();
+            String result = new String(Arrays.copyOf(buffer.array(), numRead)).trim();
             buffer.clear();
             Request request = createRequest(channel, result);
             request.setTime(Request.RECEIVE_FROM_CLIENT_TIME, currentTime);
