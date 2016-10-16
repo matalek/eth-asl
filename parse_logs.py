@@ -139,3 +139,24 @@ def draw_stability_plots():
 	plt.grid(True)
 	plt.errorbar(x, response_times, response_times_std)
 	plt.savefig('stability_response_time.png')
+
+def draw_distribution_plot():
+	fbase = 'logs/servers_distribution.log'
+	results = [[], [], []]
+	x = []
+	j = 0
+	with open(fbase, 'r') as f:
+		for line in f:
+			line = line.split(' ')
+			for i in range(0, 3):
+				results[i].append(line[i])
+			j += 1
+			x.append(j * 100000)
+
+	plt.plot(x, results[0])
+	plt.plot(x, results[1])
+	plt.plot(x, results[2])
+	plt.title('Distribution of server load')
+	plt.xlabel('Total number of requests')
+	plt.ylabel('Number of requests for server')
+	plt.savefig('servers_distribution.png')
