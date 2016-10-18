@@ -18,15 +18,18 @@ def combine_baseline():
 		for vm in vms:
 			with open('logs/throughput_' + str(i) + '_' + vm, 'r') as f:
 				j = 0
+				next(f)
 				for line in f:
-					throughputs[j] += int(line)
+					line = line.split(',')
+					throughputs[j] += int(line[1])
 					j+=1
 			with open('logs/response_time_' + str(i) + '_' + vm, 'r') as f:
 				j = 0
+				next(f)
 				for line in f:
-					line = line.split(' ')
-					response_times[j] += int(line[0])
-					response_times_std[j] += float(line[1])
+					line = line.split(',')
+					response_times[j] += int(line[1])
+					response_times_std[j] += float(line[2])
 					j+=1
 
 		for j in range(0, experiments_cnt):
@@ -34,8 +37,9 @@ def combine_baseline():
 			response_times_std[j] /= len(vms)
 
 		with open(fbase + str(i) + '.log', 'w+') as f:
+			f.write('Number of clients,TPS,Response time,Response time standard deviation\n')
 			for j in range(0, experiments_cnt):
-				f.write(str(throughputs[j]) + ' ' + str(response_times[j]) + ' ' + str(response_times_std[j]) + '\n')
+				f.write(str(2*(j + 1)) + ',' + str(throughputs[j]) + ',' + str(response_times[j]) + ',' + str(response_times_std[j]) + '\n')
 
 def draw_baseline_plots():
 	series_cnt = 5
@@ -49,11 +53,12 @@ def draw_baseline_plots():
 	for i in range(1, series_cnt + 1):
 		with open(fbase + str(i) + '.log', 'r') as f:
 			j = 0
+			next(f)
 			for line in f:
-				line = line.split(' ')
-				results[0][j].append(int(line[0]))
-				results[1][0][j].append(float(line[1]))
-				results[1][1][j].append(float(line[2]))
+				line = line.split(',')
+				results[0][j].append(int(line[1]))
+				results[1][0][j].append(float(line[2]))
+				results[1][1][j].append(float(line[3]))
 				j += 1
 	new_results = [[], [[], []]]
 	for i in range(0, experiments_cnt):
@@ -61,15 +66,15 @@ def draw_baseline_plots():
 		new_results[1][0].append(np.array(results[1][0][i]))
 		new_results[1][1].append(np.array(results[1][1][i]))
 
+	x = []
 	avgs = [[], []]
 	stds = [[], []]
-	x = []
 	for i in range(0, experiments_cnt):
 		avgs[0].append(new_results[0][i].mean())
 		avgs[1].append(new_results[1][0][i].mean())
 		stds[1].append(new_results[1][1][i].mean())
 		if (i == 31):
-			print(str(avgs[0][-1]) + ' ' + str(avgs[1][-1]) + ' ' + str(stds[1][-1]))
+			print(str(avgs[0][-1]) + ',' + str(avgs[1][-1]) + ',' + str(stds[1][-1]))
 		x.append((i+1)*2)
 
 	plt.plot(x, avgs[0])
@@ -93,20 +98,24 @@ def combine_stability():
 	response_times = []
 	response_times_std = []
 	throughputs = []
+	time = []
 	i = 0
 	for vm in vms:
 		with open(fbase + '_' + vm + '.log', 'r') as f:
 			j = 0
+			next(f)
 			for line in f:
-				line = line.split(' ')
+				line = line.split(',')
+				print(line[3] + '\n')
 				if i == 0:
-					throughputs.append(int(line[0]))
-					response_times.append(int(line[1]))
-					response_times_std.append(float(line[2]))
+					time.append(line[0])
+					throughputs.append(int(line[1]))
+					response_times.append(int(line[2]))
+					response_times_std.append(float(line[3]))
 				else:
-					throughputs[j] += int(line[0])
-					response_times[j] += int(line[1])
-					response_times_std[j] += float(line[2])
+					throughputs[j] += int(line[1])
+					response_times[j] += int(line[2])
+					response_times_std[j] += float(line[3])
 				j += 1
 		i += 1
 
@@ -115,8 +124,16 @@ def combine_stability():
 		response_times_std[j] /= len(vms)
 
 	with open(fbase + '.log', 'w+') as f:
+		f.write('Time,TPS,Response time,Response time standard deviation\n')
 		for j in range(0, len(throughputs)):
-			f.write(str(throughputs[j]) + ' ' + str(response_times[j]) + ' ' + str(response_times_std[j]) + '\n')
+			f.write(time[j] +',' + str(throughputs[j]) + ',' + str(response_times[j]) + ',' + str(response_times_std[j]) + '\n')
+
+def RepresentsInt(s):
+    try: 
+        int(s)
+        return True
+    except ValueError:
+        return False
 
 def draw_stability_plots():
 	fbase = 'logs/stability_parsed.log'
@@ -128,23 +145,24 @@ def draw_stability_plots():
 	x = []
 	with open(fbase, 'r') as f:
 		i = 0
+		next(f)		
 		for line in f:
-			line = line.split(' ')
-			tps.append(int(line[0]))
-			response_times.append(float(line[1]))
-			response_times_std.append(float(line[2]))
-			x.append((i+1)*10)
+			line = line.split(',')
+			if (RepresentsInt(line[0])):
+				x.append(int(line[0]))
+			tps.append(int(line[1]))
+			response_times.append(float(line[2]))
+			response_times_std.append(float(line[3]))
 			i+=1
 
 	# Remove last, since it's total data
 	total_tps = tps[-1]
 	total_response_time = response_times[-1]
 	total_response_time_std = response_times_std[-1]
-	print(str(total_tps) + ' ' + str(total_response_time) + ' ' + str(total_response_time_std))
+	print(str(total_tps) + ',' + str(total_response_time) + ',' + str(total_response_time_std))
 	del tps[-1]
 	del response_times[-1]
 	del response_times_std[-1]
-	del x[-1]
 
 	plt.ylim([0, 17000])
 	plt.xlim([0, 3600])
@@ -179,8 +197,9 @@ def draw_distribution_plot():
 	x = []
 	j = 0
 	with open(fbase, 'r') as f:
+		next(f)
 		for line in f:
-			line = line.split(' ')
+			line = line.split(',')
 			for i in range(0, 3):
 				results[i].append(line[i])
 			j += 1

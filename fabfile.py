@@ -112,7 +112,19 @@ def run_stability_experiment():
 	stop_memcached('asl5')
 	stop_memcached('asl6')
 
+def compute_baseline():
+	copy_parse()
+	clients = 64
+	hosts = [['asl2', 1], ['asl3', 2]]
+	for host in hosts:
+		with settings(host_string=host[0]):
+			run('python3 -c "from parse_logs_vms import *; parse_baseline(%d, \'%d\')"' % (clients, host[1]))
+	import_baseline_logs()
+	local('python3 -c "from parse_logs import *; combine_baseline()"')
+	local('python3 -c "from parse_logs import *; draw_baseline_plots()"')
+
 def compute_stability():
+	copy_parse()
 	hosts = [['asl2', 1], ['asl3', 2], ['asl4',3]]
 	for host in hosts:
 		with settings(host_string=host[0]):
@@ -120,3 +132,8 @@ def compute_stability():
 	import_stability_logs()
 	local('python3 -c "from parse_logs import *; combine_stability()"')
 	local('python3 -c "from parse_logs import *; draw_stability_plots()"')
+
+def copy_compressed_logs():
+	for host in ['asl2', 'asl3', 'asl4']:
+		local('scp %s:~/logs*.tar.gz ./logs/' % host)
+
