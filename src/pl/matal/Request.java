@@ -4,8 +4,11 @@ import java.nio.channels.SocketChannel;
 
 /**
  * Created by aleksander on 26.09.16.
+ *
+ * Class representing incoming requests.
  */
 public abstract class Request {
+    // Stored channel in order to send later response to the client.
     protected SocketChannel channel;
     protected String key;
     private boolean toLog;
@@ -17,11 +20,11 @@ public abstract class Request {
     public static final int RECEIVE_FROM_SERVER_TIME = 4;
     public static final int SEND_TO_CLIENT_TIME = 5;
 
-    private long[] instrumentationTimes;
-    private boolean successFlag = true;
-
     public static final int TYPE_SET = 0;
     public static final int TYPE_GET = 1;
+
+    private long[] instrumentationTimes;
+    private boolean successFlag = true;
 
     public Request(SocketChannel channel, String key, boolean toLog) {
         this.channel = channel;
@@ -69,12 +72,5 @@ public abstract class Request {
 
     public static long getCurrentTime() {
         return System.nanoTime() / 1000;
-    }
-
-    @Override
-    public String toString() {
-        return "Request{" +
-                "key='" + key + '\'' +
-                '}';
     }
 }

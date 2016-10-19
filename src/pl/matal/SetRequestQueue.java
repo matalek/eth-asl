@@ -4,6 +4,8 @@ import java.lang.reflect.Array;
 
 /**
  * Created by aleksander on 26.09.16.
+ *
+ * Class representing queue for set and delete requests.
  */
 public class SetRequestQueue extends RequestQueue<SetRequest> {
     private MemcachedServer[] servers;

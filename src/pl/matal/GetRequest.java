@@ -4,6 +4,8 @@ import java.nio.channels.SocketChannel;
 
 /**
  * Created by aleksander on 26.09.16.
+ *
+ * Class representing get requests.
  */
 public class GetRequest extends Request {
     public GetRequest(SocketChannel channel, String key, boolean toLog) {
@@ -14,5 +16,4 @@ public class GetRequest extends Request {
     public int getType() {
         return TYPE_GET;
     }
-
 }

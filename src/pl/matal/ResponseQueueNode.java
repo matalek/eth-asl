@@ -2,9 +2,12 @@ package pl.matal;
 
 /**
  * Created by aleksander on 01.10.16.
+ *
+ * Class representing single node in the response queue.
  */
 public class ResponseQueueNode {
     private SetRequest request;
+    // Counts how many responses for this requesy we have received.
     private int responseCount = 0;
     private ResponseQueueNode next;
 
@@ -45,5 +48,4 @@ public class ResponseQueueNode {
         responseCount++;
         return next;
     }
-
 }

@@ -5,8 +5,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by aleksander on 26.09.16.
+ *
+ * Class representing queue in which requests are stored.
  */
-public abstract class RequestQueue<R> {
+public abstract class RequestQueue<R extends Request> {
     protected BlockingQueue<R> queue;
     protected Worker[] workers;
 

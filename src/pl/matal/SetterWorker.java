@@ -11,6 +11,8 @@ import java.util.Set;
 
 /**
  * Created by aleksander on 26.09.16.
+ *
+ * Class representing thread forwarding set and delete requests.
  */
 public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
 
@@ -69,6 +71,7 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
 
     @Override
     protected void handleRequest(SetRequest request) throws IOException {
+        // Creating a request to be sent to servers.
         StringBuilder serverRequest =  new StringBuilder("");
         if (request.isDelete()) {
             serverRequest.append("delete ");
@@ -106,16 +109,18 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
         } else {
             String result = new String(Arrays.copyOf(buffer.array(), numRead)).trim();
             buffer.clear();
-            String[] resultLines = result.split("\r\n");
             int channelNumber = findChannelNumber(channel);
-
-            for (int i = 0; i < resultLines.length; i++) {
-                String line = resultLines[i];
+            // One network response can contain several request responses from
+            // the server. Therefore, we need to iterate line by line.
+            String[] resultLines = result.split("\r\n");
+            for (String line : resultLines) {
                 responseQueue.registerResponse(channelNumber, line.trim());
             }
         }
     }
 
+    // Finds server number based on the channel on which we received
+    // the response.
     private int findChannelNumber(SocketChannel channel) {
         for (int i = 0; i < serverChannels.length; i++) {
             if (serverChannels[i].equals(channel)) {

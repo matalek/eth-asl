@@ -5,6 +5,8 @@ import java.util.Arrays;
 
 /**
  * Created by aleksander on 26.09.16.
+ *
+ * Class representing set and delete requests.
  */
 public class SetRequest extends Request {
     private int[] params;

@@ -5,6 +5,9 @@ import java.nio.ByteBuffer;
 
 /**
  * Created by aleksander on 26.09.16.
+ *
+ * Class representing thread which forwards request from queue
+ * to the memcached server and collects responses.
  */
 public abstract class Worker<Q extends RequestQueue<R>, R extends Request> implements Runnable {
     protected Q queue;

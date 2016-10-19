@@ -4,6 +4,8 @@ import java.lang.reflect.Array;
 
 /**
  * Created by aleksander on 26.09.16.
+ *
+ * Class representing queue for get requests.
  */
 public class GetRequestQueue extends RequestQueue<GetRequest> {
     private MemcachedServer server;

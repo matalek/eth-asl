@@ -4,6 +4,8 @@ import java.io.IOException;
 
 /**
  * Created by aleksander on 01.10.16.
+ *
+ * Class representing queue for storing responses from several servers.
  */
 public class ResponseQueue {
     public static final String SET_SUCCESS_RESPONSE = "STORED";
@@ -11,6 +13,8 @@ public class ResponseQueue {
     private int serversNumber;
     private SetterWorker worker;
     private ResponseQueueNode start, end;
+    // Array representing current node for given server, for which
+    // we should now get the response.
     private ResponseQueueNode positions[];
 
     public ResponseQueue(int serversNumber, SetterWorker worker) {
@@ -23,10 +27,10 @@ public class ResponseQueue {
         ResponseQueueNode node = new ResponseQueueNode(request, null);
         if (start == null) {
             start = node;
-
         } else {
             end.setNext(node);
         }
+        // Updating positions for servers which have received other responses.
         for (int i = 0; i < serversNumber; i++) {
             if (positions[i] == null) {
                 positions[i] = node;
@@ -46,6 +50,7 @@ public class ResponseQueue {
         check();
     }
 
+    // Check whether first requests from the queue have received all responses.
     private void check() {
         while (start != null && start.getResponseCount() == serversNumber) {
             respondToClient(start.getRequest());

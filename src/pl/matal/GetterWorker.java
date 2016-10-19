@@ -8,6 +8,8 @@ import java.net.Socket;
 
 /**
  * Created by aleksander on 28.09.16.
+ *
+ * Class representing thread forwarding get requests.
  */
 public class GetterWorker extends Worker<GetRequestQueue, GetRequest> {
     private PrintWriter out;

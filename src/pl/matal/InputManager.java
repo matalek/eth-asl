@@ -13,6 +13,8 @@ import java.util.Set;
 
 /**
  * Created by aleksander on 26.09.16.
+ *
+ * Class for handling incoming requests from clients.
  */
 public class InputManager {
     public static final int MESSAGE_SIZE = 1088;
@@ -20,6 +22,7 @@ public class InputManager {
 
     private MiddlewareServer server;
     private Selector selector;
+    // We keep 2 separate counters for each type of request.
     private int setsCounter = 0;
     private int getsCounter = 0;
     private ByteBuffer buffer;

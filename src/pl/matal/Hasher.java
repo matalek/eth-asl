@@ -2,11 +2,14 @@ package pl.matal;
 
 /**
  * Created by aleksander on 26.09.16.
+ *
+ * Class responsible for hashing keys and calculating an appropriate
+ * server number.
  */
 public class Hasher {
     private static final int BASE = 257;
 
-    public int getServerNumber(Request request, int serverCount) {
+    public int getServerNumber(Request request, final int serverCount) {
         int hash = 0;
         for (char c : request.getKey().toCharArray()) {
             hash = hash * BASE + (int) c;

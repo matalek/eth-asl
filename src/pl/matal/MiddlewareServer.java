@@ -8,6 +8,8 @@ import java.util.logging.Logger;
 
 /**
  * Created by aleksander on 26.09.16.
+ *
+ * Main class of the server, initializing and connecting all other classes.
  */
 public class MiddlewareServer {
     private static final String loggerName = "MiddlewareServerLogger";
@@ -22,8 +24,10 @@ public class MiddlewareServer {
     private GetRequestQueue[] getRequestQueues;
     private long serverStats[];
     private int serverStatsCounter;
+    // How often do we want to log server distribution statistics.
     private final int SERVER_STATS_FREQUENCY = 100000;
 
+    // Getting logger using singleton pattern.
     public static Logger getLogger() {
         if (logger == null) {
             logger = Logger.getLogger(loggerName);
@@ -84,17 +88,24 @@ public class MiddlewareServer {
 
     public void handleRequest(Request request) {
         int serverNumber = hasher.getServerNumber(request, serverCount);
-        serverStats[serverNumber]++;
-        serverStatsCounter++;
-        if (serverStatsCounter % SERVER_STATS_FREQUENCY == 0) {
-            serverStatsCounter = 0;
-            writeServerStats();
-        }
+        // Uncomment to measure server distribution statistics.
+        // calculateServerStats(serverNumber);
         request.setTime(Request.ENQUEUE_TIME);
         if (request.getType() == Request.TYPE_GET) {
             getRequestQueues[serverNumber].add((GetRequest) request);
         } else {
             setRequestQueues[serverNumber].add((SetRequest) request);
+        }
+    }
+
+    // Increases an appropriate server distribution statistic and logs
+    // information if necessary.
+    private void calculateServerStats(int serverNumber) {
+        serverStats[serverNumber]++;
+        serverStatsCounter++;
+        if (serverStatsCounter % SERVER_STATS_FREQUENCY == 0) {
+            serverStatsCounter = 0;
+            writeServerStats();
         }
     }
 
