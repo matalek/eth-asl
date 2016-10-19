@@ -16,14 +16,14 @@ def combine_baseline():
 			throughputs.append(0)
 
 		for vm in vms:
-			with open('logs/throughput_' + str(i) + '_' + vm, 'r') as f:
+			with open('logs/throughput_' + str(i) + '_' + vm + '.log', 'r') as f:
 				j = 0
 				next(f)
 				for line in f:
 					line = line.split(',')
 					throughputs[j] += int(line[1])
 					j+=1
-			with open('logs/response_time_' + str(i) + '_' + vm, 'r') as f:
+			with open('logs/response_time_' + str(i) + '_' + vm + '.log', 'r') as f:
 				j = 0
 				next(f)
 				for line in f:
@@ -78,6 +78,7 @@ def draw_baseline_plots():
 		x.append((i+1)*2)
 
 	plt.plot(x, avgs[0])
+	plt.grid(True)
 	plt.xlim([0, 128])
 	plt.title('Aggregated throughput')
 	plt.ylabel('Throughput [ops/s]')
@@ -86,7 +87,9 @@ def draw_baseline_plots():
 	plt.clf()
 
 	plt.errorbar(x, avgs[1], stds[1])
+	plt.grid(True)
 	plt.xlim([0, 128])
+	plt.ylim([0, 9000])
 	plt.title('Response time')
 	plt.ylabel('Response time [us]')
 	plt.xlabel('Time [s]')
@@ -199,7 +202,7 @@ def draw_distribution_plot():
 	with open(fbase, 'r') as f:
 		next(f)
 		for line in f:
-			line = line.split(',')
+			line = line.split(' ')
 			for i in range(0, 3):
 				results[i].append(line[i])
 			j += 1
@@ -208,6 +211,7 @@ def draw_distribution_plot():
 	plt.plot(x, results[0])
 	plt.plot(x, results[1])
 	plt.plot(x, results[2])
+	plt.grid(True)
 	plt.title('Distribution of server load')
 	plt.xlabel('Total number of requests')
 	plt.ylabel('Number of requests for server')

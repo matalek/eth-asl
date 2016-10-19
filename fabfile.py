@@ -84,7 +84,7 @@ def run_baseline_experiments(series_number = '1'):
 	pause = 5
 	max_clients = 64
 	memcached_server = '10.0.0.12'
-	output = '../logs/microbench%d_%s' % (clients, series_number)
+	output = '../logs/microbench%d_%s.log' % (clients, series_number)
 	run_memcached()
 	for clients in range(1, max_clients + 1):
 		run_memaslap_async('asl2', memcached_server, run_time, run_time, clients, output)

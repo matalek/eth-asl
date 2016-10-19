@@ -2,7 +2,7 @@ def parse_baseline_throughput(clients, vm_number, series_number = 1):
 	fbase = 'logs/microbench'
 	res = []
 	for i in range(1, clients + 1):
-		fname = fbase + str(i) + '_' + str(series_number) 
+		fname = fbase + str(i) + '_' + str(series_number) + '.log'
 		with open(fname, 'r') as fh:
 			for line in fh:
 			    pass
@@ -18,7 +18,7 @@ def parse_baseline_response_time(clients, vm_number, series_number = 1):
 	fbase = 'logs/microbench'
 	res = []
 	for i in range(1, clients + 1):
-		fname = fbase + str(i) + '_' + str(series_number) 
+		fname = fbase + str(i) + '_' + str(series_number) + '.log'
 		with open(fname, 'r') as fh:
 			lines = fh.readlines()
 			for i in range(0, len(lines)):
@@ -42,7 +42,7 @@ def parse_baseline_response_time(clients, vm_number, series_number = 1):
 	write_to_file('response_time', vm_number, series_number, res);
 
 def write_to_file(name_start, vm_number, series_number, content):
-	fres = 'logs/' + name_start + '_' + str(series_number) + '_' + vm_number
+	fres = 'logs/' + name_start + '_' + str(series_number) + '_' + vm_number  + '.log'
 	write_to_named_file(fres, content)
 
 def write_to_named_file(fname, content):
