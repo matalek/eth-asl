@@ -14,7 +14,7 @@ def deploy():
 
 def clear_keys():
 	for host_number in [1, 2, 3, 4, 5, 6, 11]:
-		local('ssh-keygen -f "/home/aleksander/.ssh/known_hosts" \
+		local('ssh-keygen \
 			-R matusiaaforaslvms%d.westeurope.cloudapp.azure.com' % host_number)
 
 def copy_parse():
