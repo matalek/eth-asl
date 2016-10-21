@@ -172,9 +172,9 @@ In the following figure $y$-axis has been limited to start from 0. Even though s
 \includegraphics[scale=0.7]{baseline_response_time.png}
 \medskip
 
-From above plot we can see, that average response time changes almost in a linear way as we increase the number of clients. The performance of memcached server is therefore pretty predictable. Since memcached uses only one thread, we do not see the period where response time is almost constant - all requests have to be queued, from which follows that more clients means higher response time.
+From above plot we can see, that average response time changes almost in a linear way as we increase the number of clients. Since memcached uses only one thread, we do not see the period where response time is almost constant - all requests have to be queued, from which follows that more clients means higher response time.
 
-We can see that response times increases slightly more dynamic since around 24 clients, which is consistent with the behavior of throughput at that point. However, at 96 clients we cannot see a drastic increase in the average response time, so based on this plot we can say that server has not been saturated yet. We do not find any drastic increase in the average response time, so we can once again say, that server has not encountered problems connected with too high number of clients.
+We can see that response times increases slightly more dynamic since around 24 clients, which is consistent with the behavior of throughput at that point. We do not find any drastic increase in the average response time, so we can once again say, that server has not encountered problems connected with too high number of clients.
 
 However, the standard deviation for every measurement is really high. This is the result of the fact that clients and server work on different machines and they have to communicate through network. Depending on the current load of network, times that it takes from packet to reach server and return back to client can differ significantly.
 
