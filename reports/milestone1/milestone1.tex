@@ -176,7 +176,7 @@ From above plot we can see, that average response time changes almost in a linea
 
 We can see that response times increases slightly more dynamic since around 24 clients, which is consistent with the behavior of throughput at that point. We do not find any drastic increase in the average response time, so we can once again say, that server has not encountered problems connected with too high number of clients.
 
-However, the standard deviation for every measurement is really high. This is the result of the fact that clients and server work on different machines and they have to communicate through network. Depending on the current load of network, times that it takes from packet to reach server and return back to client can differ significantly.
+However, the standard deviation for every measurement is really high and it increases significantly as we add more clients (it increases more than the average response time). This is the result of the fact that clients and server work on different machines and they have to communicate through network. Depending on the current load of network, times that it takes from packet to reach server and return back to client can differ significantly. More clients means more network connections, which contributes to higher standard deviation.
 
 \section{Stability Trace}\label{sec:trace}
 
