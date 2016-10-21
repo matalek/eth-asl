@@ -90,7 +90,7 @@ where for $B$ I have chosen 257, which is a prime number and is bigger than poss
 
 To calculate a server number based on the hash value, I have used consistent hashing presented during a tutorial session. If $n$ is the number of servers, we divide the interval: \begin{verbatim} (Integer.MIN_VALUE, Integer.MAX_VALUE)\end{verbatim} to $n$ intervals of equal length and assign a server depending to which interval does the hash value belong.
 
-Algorithm described above for calculating a hash function is commonly used while implementing text algorithms which use hashing. It is known to be effective and create a low amount of conflicts. This also means, that it uniformly distributes the values of the function. What is more, the value of the hash function is dependent on each character of the key, so changing one of them would change the result value (more or less significantly depending on the position of the character). Using consistent hashing presented during a tutorial session enables us then to get a uniform distribution of keys to servers. To prove this, I have measured the distribution of server load during my stability experiment and have achieved following results:
+Algorithm described above for calculating a hash function is commonly used while implementing text algorithms which use hashing. It is known to be effective and create a low amount of conflicts. This also means, that it uniformly distributes the values of the function. What is more, the value of the hash function is dependent on each character of the key, so changing one of them would change the result value (more or less significantly depending on the position of the character). Using consistent hashing presented during a tutorial session enables us then to get a uniform distribution of keys to servers. To prove this, I have measured the distribution of server load during my stability experiment and have achieved following results (these values are also present in log: servers\_distribution):
 
 \includegraphics[scale=0.6]{servers_distribution.png}
 
@@ -260,6 +260,7 @@ It is also worth noticing that standard deviation for response time has improved
 \hline logs\_stability\_2 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone1/logs_stability_2.tar.gz}\\ 
 \hline logs\_stability\_3 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone1/logs_stability_3.tar.gz}\\ 
 \hline stability\_parsed & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone1/stability_parsed.log}\\ 
+\hline servers\_distribution & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone1/servers_distribution.log}\\ 
 \hline 
 \end{tabular}
 
