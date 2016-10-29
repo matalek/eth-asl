@@ -1,0 +1,35 @@
+Servers used
+
+Middleware: asl11
+
+
+Milestone 1.
+
+Memcached: asl1, asl5, asl6
+Memaslap: asl2, asl3, asl4
+
+
+Milestone 2.
+
+Task 1. - Maximum Throughput
+
+Memcached: asl1, asl5, asl6, asl7, asl8
+Memaslap: asl2, asl3, asl4, asl9, asl10
+
+Task 2. - Effect of Replication
+
+Memcached: asl1, asl5, asl6
+Memaslap: asl2, asl3, asl4, asl7, asl8, asl9, asl10
+
+Task 3. - Effect of Writes
+
+Memcached: asl1, asl5, asl6
+Memaslap: asl2, asl3, asl4, asl7, asl8, asl9, asl10
+
+
+Memcached IP addresses - 10.0.0._
+1: 12
+5: 14
+6: 4
+7: 13
+8: 5
