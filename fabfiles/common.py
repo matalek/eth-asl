@@ -2,7 +2,7 @@ from fabric.api import *
 from fabric.context_managers import settings
 import time
 
-middleware_server = '10.0.0.12'
+middleware_server = '10.0.0.11'
 
 def deploy():
 	local('git push')
@@ -21,9 +21,9 @@ def clear_keys():
 		local('ssh-keygen -f "/home/aleksander/.ssh/known_hosts" \
 			-R matusiaaforaslvms%d.westeurope.cloudapp.azure.com' % host_number)
 
-def run_memcached(host):
+def run_memcached(host, additional = ''):
 	with settings(host_string=host):
-		runbg('memcached -p 11212 -t 1')
+		runbg('memcached -p 11212 -t 1' + additional)
 
 def stop_middleware():
 	with settings(host_string='asl11'):
@@ -40,9 +40,9 @@ def runbg(cmd, output_file=None, log_file='/dev/null', sockname="dtach"):
 		cmd = "/bin/bash -c '{} > /dev/null 2> /dev/null'".format(cmd)
 	return run('dtach -n `mktemp -u /tmp/%s.XXXX` %s'  % (sockname,cmd))
 
-def run_memaslap_async(host, run_time, stats_time, clients, output, cfg = 'max_throughput'):
+def run_memaslap_async(host, run_time, stats_time, clients, output, additional = '', cfg = 'max_throughput'):
 	with settings(host_string=host):
 		with cd('libmemcached-1.0.18'):
 			runbg('./clients/memaslap -s %s:11212 -T %d -c %d -o 0.9 -S %ss -t %ss -F ../workloads/%s.cfg' 
-					% (middleware_server, clients, clients, stats_time, run_time, cfg),
+					% (middleware_server, clients, clients, stats_time, run_time, cfg) + additional,
 					output)

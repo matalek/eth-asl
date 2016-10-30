@@ -14,7 +14,7 @@ def copy_workloads():
 def run_memcached_many(cnt=5):
 	hosts = [1, 5, 6, 7, 8]
 	for i in range(0, cnt):
-		run_memcached('asl' + str(hosts[i]))
+		run_memcached('asl' + str(hosts[i]), ' -m 256')
 
 def stop_memcached_many(cnt=5):
 	servers = [1, 5, 6, 7, 8]
@@ -44,7 +44,7 @@ def run_max_throughput_experiment(clients, thread_pool):
 	run_middleware(thread_pool, 1, memcached_string, output)
 
 	for host in hosts:
-		run_memaslap_async('asl' + str(host), run_time, stats_time, clients, output, 'max_throughput')
+		run_memaslap_async('asl' + str(host), run_time, stats_time, clients, output, ' -w 1k', 'max_throughput')
 	time.sleep(run_time + pause)
 
 	stop_middleware()
@@ -53,12 +53,12 @@ def run_max_throughput_experiment(clients, thread_pool):
 def run_max_throughput_experiments():
 	copy_workloads()
 
-	min_clients_per_machine = 98
+	min_clients_per_machine = 40
 	max_clients_per_machine = 100
-	clients_step = 2
+	clients_step = 10
 
 	min_thread_pool = 10
-	max_thread_pool = 60
+	max_thread_pool = 20
 	thread_pool_step = 10
 
 	for clients in range(min_clients_per_machine, max_clients_per_machine + 1, clients_step):
