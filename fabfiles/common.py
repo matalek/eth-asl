@@ -33,6 +33,10 @@ def stop_memcached(host):
 	with settings(host_string=host):
 		run('sudo pkill -f memcached')
 
+def stop_memaslap(host):
+	with settings(host_string=host):
+		run('sudo pkill -f memaslap')
+
 def runbg(cmd, output_file=None, log_file='/dev/null', sockname="dtach"):
 	if output_file:
 		cmd = "/bin/bash -c '{} > {} 2> {}'".format(cmd, output_file, log_file)

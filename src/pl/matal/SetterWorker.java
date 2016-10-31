@@ -95,7 +95,9 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
         for (SocketChannel channel : serverChannels) {
             buffer.put(serverRequest.toString().getBytes());
             buffer.flip();
-            channel.write(buffer);
+            while (buffer.hasRemaining()){
+                channel.write(buffer);
+            }
             buffer.clear();
         }
     }

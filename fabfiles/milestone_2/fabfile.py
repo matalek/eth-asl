@@ -17,9 +17,14 @@ def run_memcached_many(cnt=5):
 		run_memcached('asl' + str(hosts[i]), ' -m 256')
 
 def stop_memcached_many(cnt=5):
-	servers = [1, 5, 6, 7, 8]
+	servers = [1, 5, 6, 7, 8, 9, 10]
 	for i in range(0, cnt):
 		stop_memcached('asl' + str(servers[i]))
+
+def stop_memaslap_many(cnt=5):
+	servers = [2, 3, 4, 9, 10]
+	for i in range(0, cnt):
+		stop_memaslap('asl' + str(servers[i]))
 
 def run_middleware(threads, rep, memcached_string, log_output_file):
 	with settings(host_string='asl11'):
@@ -30,9 +35,9 @@ def run_middleware(threads, rep, memcached_string, log_output_file):
 
 def run_max_throughput_experiment(clients, thread_pool):
 	hosts = [2, 3, 4, 9, 10]
-	run_time = 2 * 60
+	run_time = 5 * 60
 	stats_time = 30
-	pause = 10
+	pause = 3 * 60
 
 	run_memcached_many(5)
 
@@ -53,13 +58,13 @@ def run_max_throughput_experiment(clients, thread_pool):
 def run_max_throughput_experiments():
 	copy_workloads()
 
-	min_clients_per_machine = 40
-	max_clients_per_machine = 100
-	clients_step = 10
+	min_clients_per_machine = 90
+	max_clients_per_machine = 150
+	clients_step = 2
 
-	min_thread_pool = 10
-	max_thread_pool = 20
-	thread_pool_step = 10
+	min_thread_pool = 8
+	max_thread_pool = 16
+	thread_pool_step = 8
 
 	for clients in range(min_clients_per_machine, max_clients_per_machine + 1, clients_step):
 		for thread_pool in range(min_thread_pool, max_thread_pool + 1, thread_pool_step):
@@ -76,3 +81,43 @@ def copy_max_throughput_logs():
 	hosts = [2, 3, 4, 9, 10]
 	for i in range(0, len(hosts)):
 		local('scp asl%s:logs/max_throughput.log ./logs_working/max_throughput_%d.log' % (hosts[i], i + 1))
+
+def run_replication_experiment(servers, replication_factor): # replication 1, 2, 3 - type
+	memaslap_hosts = [2, 3, 4]
+	run_time = 5 * 60 # TODO: change
+	stats_time = 30
+	pause = 3 * 60 # TODO: change
+	clients_per_machine = 100 # TODO: put another value
+	threads = 10 # TODO: put another value
+
+	replication_values = [1, round(servers/2), servers]
+	replication = replication_values[replication_factor]
+	run_memcached_many(servers)
+
+	output = '../logs/replication_%d_%d.log' % (replication_factor, servers)
+	memcached_ips = [12, 14, 4, 13, 5, 10, 8]
+	memcached_string = ''
+	for i in range(0, servers):
+		memcached_string += '10.0.0.%d:11212 ' % memcached_ips[i] 
+	run_middleware(thread_pool, replication, memcached_string, output)
+
+	for host in memaslap_hosts:
+		run_memaslap_async('asl' + str(host), run_time, stats_time, clients_per_machine, output, ' -w 1k', 'replication')
+	time.sleep(run_time + pause)
+
+	stop_middleware()
+	stop_memcached_many(servers)
+
+def run_replication_experiments():
+	copy_workloads()
+
+	min_servers = 3
+	max_servers = 7
+	step_servers = 2
+
+	min_replication = 1
+	max_replication = 3
+
+	for servers in range(min_servers, max_servers + 1, step_servers):
+		for replication in range(min_replication, max_replication + 1, 1):
+			run_replication_experiment(servers, replication)

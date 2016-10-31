@@ -60,28 +60,24 @@ def plot_max_throughput(const_type, value):
 	plt.title(plot_title_name)
 	plt.ylabel('Throughput [ops/s]')
 	plt.xlabel(plot_x_label)
+	plt.gca().set_ylim(bottom=0)
 	plt.savefig(plot_file_name)
 	plt.clf()
 
+min_threads = 8
+max_threads = 8
+step_threads = 10
+min_clients = 450
+max_clients = 700
+step_clients = 10
+
 def plot_max_throughput_all():
-	min_threads = 10
-	max_threads = 60
-	step_threads = 10
-	min_clients = 100
-	max_clients = 500
-	step_clients = 10
 	for clients in range(min_clients, max_clients + 1, step_clients):
 		plot_max_throughput(0, clients)
 	for threads in range(min_threads, max_threads + 1, step_threads):
 		plot_max_throughput(1, threads)
 
 def plot_max_throughput_global():
-	min_threads = 10
-	max_threads = 60
-	step_threads = 10
-	min_clients = 100
-	max_clients = 500
-	step_clients = 10
 	fname = 'logs_working/max_throughput.log'
 	x = []
 	y = []
@@ -98,13 +94,13 @@ def plot_max_throughput_global():
 	plot_title_name = 'Maximum throughput experiment'
 	plot_file_name = 'plots/max_throughput_all.png'
 
-	for threads in range(0, (max_threads - min_threads) // step_threads):
+	for threads in range(0, (max_threads - min_threads) // step_threads + 1):
 		plt.plot(x, y[threads])
 	plt.grid(True)
 
 	plt.title(plot_title_name)
 	plt.ylabel('Throughput [ops/s]')
 	plt.xlabel('Clients')
-	plt.ylim([0, 42000])
+	plt.gca().set_ylim(bottom=0)
 	plt.savefig(plot_file_name)
 	plt.clf()
