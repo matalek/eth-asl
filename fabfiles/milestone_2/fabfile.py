@@ -1,7 +1,7 @@
 from fabric.api import *
 from fabric.context_managers import settings
 from fabfiles.common import *
-from parse.milestone_2.parse_logs import combine_max_throughput
+from parse.milestone_2.parse_logs import *
 
 def copy_parse():
 	for host in [2, 3, 4, 9, 10]:
@@ -77,10 +77,15 @@ def compute_max_throughput():
 			run('python3 -c "from parse_logs_vms import *; parse_max_throughput()"')
 	copy_max_throughput_logs()
 
+def combine_max_throughput():
+	combine_throughput('logs_working/max_throughput')
+	combine_response_time('logs_working/max_throughput-response_time')
+
 def copy_max_throughput_logs():
 	hosts = [2, 3, 4, 9, 10]
 	for i in range(0, len(hosts)):
 		local('scp asl%s:logs/max_throughput.log ./logs_working/max_throughput_%d.log' % (hosts[i], i + 1))
+		local('scp asl%s:logs/max_throughput-response_time.log ./logs_working/max_throughput-response_time_%d.log' % (hosts[i], i + 1))
 
 def run_replication_experiment(servers, replication_factor): # replication 1, 2, 3 - type
 	memaslap_hosts = [2, 3, 4]

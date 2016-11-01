@@ -1,4 +1,5 @@
 import os
+import math
 
 def write_to_file(name, content):
 	fres = 'logs/' + name + '.log'
@@ -17,6 +18,8 @@ def write_to_named_file(fname, content):
 
 def parse_max_throughput():
 	parse_throughput('max_throughput', ['Number of clients', 'Size of thread pool', 'TPS'])
+	parse_response_time('max_throughput', 'max_throughput-response_time',
+			['Number of clients', 'Size of thread pool', 'Response time', 'Standard deviation'])
 
 def parse_response():
 	parse_throughput('replication', ['Replcation factor', 'Number of servers', 'TPS'])
@@ -43,9 +46,12 @@ def parse_throughput(fbase, headers):
 	res = [headers] + res
 	write_to_file(fbase, res)
 
-stability_time = 30 
+stability_time = 30
+start_time = 90
+end_time = 120
 
 def parse_throughput_single(fname):
+	print(fname)
 	till_stability_throughput = 0
 	with open(fname, 'r') as fh:
 		lines = fh.readlines()
@@ -53,17 +59,14 @@ def parse_throughput_single(fname):
 		while i < len(lines):
 			line = lines[i]
 			if (line.find('Total Statistics') != -1) and (line.find('Total Statistics (') == -1):
-				i += 2
-				if till_stability_throughput == 0:
+				i += 3
+				if lines[i].split()[1] == str(start_time):
 					till_stability_throughput = int(lines[i].split()[3])
+				elif lines[i].split()[1] == str(end_time):
+					throughput = int(lines[i].split()[3])
+					break
 			i += 1
-		last = line
-		print(fname)
-		pat = 'TPS: '
-		start = last.find(pat) + len(pat)
-		end = line[start:].find(' ')
-		throughput = int(line[start:start+end])
-		throughput = (4 * throughput - till_stability_throughput)/3
+		throughput = (throughput * end_time - till_stability_throughput * start_time) / (end_time - start_time)
 		return [str(throughput)]
 
 def parse_response_time(fbase, result_name, headers):
@@ -72,6 +75,8 @@ def parse_response_time(fbase, result_name, headers):
 	for filename in os.listdir(directory):
 		if filename.startswith(fbase + '_'):
 			data = get_params(fbase, filename)
+			if (int(data[1]) >= 10) or (int(data[1]) == 20) or (int(data[0]) > 700):
+				continue
 			res.append(data + parse_response_time_single(os.path.join(directory, filename)))
 		else:
 			continue
@@ -79,30 +84,25 @@ def parse_response_time(fbase, result_name, headers):
 	write_to_file(result_name, res)
 
 def parse_response_time_single(fname):
+	print(fname)
 	till_stability_average = 0
-	till_stability_deviation = 0
+	till_stability_std= 0
 	with open(fname, 'r') as fh:
 		lines = fh.readlines()
 		i = 0
 		while i < len(lines):
 			line = lines[i]
-			if line.find('Total Statistics') != -1:
-				if line.find('Total Statistics (') == -1:
-					i += 2
-					if till_stability_average == 0:
-						till_stability_average = int(lines[i].split()[8])
-						till_stability_deviation = int(lines[i].split()[9])
-				else: # total global
-					i += 3
-					response_time = lines[i].split()[1]
-					i += 1
-					response_time_std = lines[i].split()[1]
+			if (line.find('Total Statistics') != -1) and (line.find('Total Statistics (') == -1):
+				i += 3
+				if lines[i].split()[1] == str(start_time):
+					till_stability_average = float(lines[i].split()[8])
+					till_stability_std = float(lines[i].split()[9])
+				elif lines[i].split()[1] == str(end_time):
+					response_time = float(lines[i].split()[8])
+					response_time_std = float(lines[i].split()[9])
 					break
 			i += 1
-		last = line
-		pat = 'time: '
-		start = last.find(pat) + len(pat)
-		end = line[start:].find('s')
-		run_time = float(line[start:start+end])
-		# response_time = 
+		response_time = (response_time * end_time - till_stability_average * start_time) / (end_time - start_time)
+		response_time_std = math.sqrt((math.pow(response_time_std, 2) * end_time 
+				- math.pow(till_stability_std, 2) * start_time) / (end_time - start_time))
 		return [str(response_time), str(response_time_std)]
