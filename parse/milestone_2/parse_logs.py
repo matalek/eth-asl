@@ -52,6 +52,8 @@ def combine_response_time(fbase):
 
 	write_to_named_file(fbase + '.log', data)
 
+# --------- Max throughput task ------------- 
+
 def plot_max_throughput(const_type, value):
 	value = str(value)
 	fname = 'logs_working/max_throughput.log'
@@ -155,3 +157,105 @@ def plot_max_throughput_response_time_global():
 	plt.gca().set_ylim(bottom=0)
 	plt.savefig(plot_file_name)
 	plt.clf()
+
+# --------- Effect of replication task -------------
+
+servers_values = [3, 5, 7]
+replication_factors_values = [1, 2, 3]
+
+replication_experiment_title = '"Effects of replication" experiment'
+
+def plot_replication():
+	plot_replication_general_throughput()
+	plot_replication_general_response_time()
+
+def plot_replication_general_throughput():
+	fname = 'logs_working/replication-throughput.log'
+
+	x = replication_factors_values
+	y = []
+	for servers in servers_values:
+		y.append([])
+
+	with open(fname, 'r') as f:
+		for line in f:
+			line = line.split(',')
+			y[replication_factors_values.index(int(line[1]))].append(int(line[2])) # assuming somehow sorted
+
+	N = 3
+
+	ind = np.arange(N)  # the x locations for the groups
+	width = 0.25       # the width of the bars
+
+	fig, ax = plt.subplots()
+	rects = []
+	i = 0
+	colors = ['r', 'g', 'b']
+	for replication in replication_factors_values:
+		rects.append(ax.bar(ind + i * width, y[i], width, color=colors[i]))
+		i += 1
+
+
+	ax.set_xticks(ind + 2 * width)
+	ax.set_xticklabels(('3', '5', '7'))
+
+	ax.legend((rects[0][0], rects[1][0], rects[2][0]), ('None', 'Half', 'All'), title='Replication factor')
+
+	plot_title_name = replication_experiment_title
+	plot_file_name = 'plots/replication_throughput.png' 
+
+	plt.title(plot_title_name)
+	plt.ylabel('Throughput [ops/s]')
+	plt.xlabel('Servers')
+	plt.savefig(plot_file_name)
+	plt.clf()
+
+
+# --------- Effect of writes task -------------
+writes_percentage_factors = [1, 5, 10]
+writes_experiment_title = '"Effects of writes" experiment'
+
+def plot_writes_general_throughput():
+	fname = 'logs_working/writes-throughput.log'
+
+
+	for replication in [0, 1]:
+		x = writes_percentage_factors
+		y = []
+		for servers in servers_values:
+			y.append([])
+
+		with open(fname, 'r') as f:
+			for line in f:
+				line = line.split(',')
+				if int(line[2]) == replication:
+					y[writes_percentage_factors.index(int(line[1]))].append(int(line[3])) # assuming somehow sorted
+
+		N = 3
+
+		ind = np.arange(N)  # the x locations for the groups
+		width = 0.25       # the width of the bars
+
+		fig, ax = plt.subplots()
+		rects = []
+		i = 0
+		colors = ['r', 'g', 'b']
+		for writes_percentage in writes_percentage_factors:
+			rects.append(ax.bar(ind + i * width, y[i], width, color=colors[i]))
+			i += 1
+
+
+		ax.set_xticks(ind + 2 * width)
+		ax.set_xticklabels(('3', '5', '7'))
+
+		ax.legend((rects[0][0], rects[1][0], rects[2][0]), ('1%', '5%', '10%'), title='Number of writes')
+
+		plot_title_name = writes_experiment_title + ', ' + ('R = 1' if replication == 0 else 'R = all')
+		plot_file_name = 'plots/write_throughput_' + str(replication + 1) + '_replication.png' 
+
+		plt.title(plot_title_name)
+		plt.ylabel('Throughput [ops/s]')
+		plt.xlabel('Servers')
+		plt.savefig(plot_file_name)
+		plt.clf()
+

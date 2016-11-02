@@ -126,3 +126,46 @@ def run_replication_experiments():
 	for servers in range(min_servers, max_servers + 1, step_servers):
 		for replication in range(min_replication, max_replication + 1, 1):
 			run_replication_experiment(servers, replication)
+
+def run_writes_experiment(servers, percentage, replication_factor): # replication 1, 2
+	memaslap_hosts = [2, 3, 4]
+	run_time = 5 * 60 # TODO: change
+	stats_time = 30
+	pause = 3 * 60 # TODO: change
+	clients_per_machine = 100 # TODO: put another value
+	threads = 10 # TODO: put another value
+
+	replication_values = [1, servers]
+	replication = replication_values[replication_factor]
+	run_memcached_many(servers)
+
+	output = '../logs/writes_%d_%d.log' % (replication_factor, servers)
+	memcached_ips = [12, 14, 4, 13, 5, 10, 8]
+	memcached_string = ''
+	for i in range(0, servers):
+		memcached_string += '10.0.0.%d:11212 ' % memcached_ips[i] 
+	run_middleware(thread_pool, replication, memcached_string, output)
+
+	for host in memaslap_hosts:
+		run_memaslap_async('asl' + str(host), run_time, stats_time, clients_per_machine, output, ' -w 1k', 'writes_' + str(percentage))
+	time.sleep(run_time + pause)
+
+	stop_middleware()
+	stop_memcached_many(servers)
+
+def run_writes_experiments():
+	copy_workloads()
+
+	min_servers = 3
+	max_servers = 7
+	step_servers = 2
+
+	percentages = [1, 5, 10]
+
+	min_replication = 1
+	max_replication = 2
+
+	for servers in range(min_servers, max_servers + 1, step_servers):
+		for percentage in percentages:
+			for replication in range(min_replication, max_replication + 1, 1):
+				run_writes_experiment(servers, percentage, replication)
