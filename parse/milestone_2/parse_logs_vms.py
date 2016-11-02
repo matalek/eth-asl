@@ -1,6 +1,29 @@
 import os
 import math
 
+def is_old(filename):
+	if filename.startswith('old'):
+		return False
+	if (not filename.startswith('max_throughput')):
+		return True
+	if (not filename.startswith('max_throughput_')):
+		return False
+	filename = filename.replace('max_throughput_', '')
+	filename = filename.replace('.log', '')
+	parts = filename.split('_')
+	if (int(parts[0]) >= 500) and (int(parts[0]) <= 600) and ((int(parts[1]) % 10) == 0):
+		return False
+	return True
+
+def move_old_files():
+	directory = './logs'
+	for filename in os.listdir(directory):
+		if is_old(filename):
+			# print(os.path.join(directory, filename))
+			# print(os.path.join('./logs/old/', filename))
+			os.rename(os.path.join(directory, filename), os.path.join('./logs/old/', filename))
+
+
 def write_to_file(name, content):
 	fres = 'logs/' + name + '.log'
 	write_to_named_file(fres, content)
@@ -37,7 +60,7 @@ def parse_throughput(fbase, headers):
 	for filename in os.listdir(directory):
 		if filename.startswith(fbase + '_'):
 			data = get_params(fbase, filename)
-			if (int(data[1]) >= 10) or (int(data[1]) == 20) or (int(data[0]) > 700):
+			if (int(data[1]) == 20) or (int(data[0]) == 600):
 				continue
 			res.append(data + parse_throughput_single(os.path.join(directory, filename)))
 		else:
@@ -47,8 +70,8 @@ def parse_throughput(fbase, headers):
 	write_to_file(fbase, res)
 
 stability_time = 30
-start_time = 90
-end_time = 120
+start_time = 120
+end_time = 180
 
 def parse_throughput_single(fname):
 	print(fname)
@@ -75,7 +98,7 @@ def parse_response_time(fbase, result_name, headers):
 	for filename in os.listdir(directory):
 		if filename.startswith(fbase + '_'):
 			data = get_params(fbase, filename)
-			if (int(data[1]) >= 10) or (int(data[1]) == 20) or (int(data[0]) > 700):
+			if (int(data[1]) == 20) or (int(data[0]) == 600):
 				continue
 			res.append(data + parse_response_time_single(os.path.join(directory, filename)))
 		else:

@@ -3,6 +3,15 @@ from fabric.context_managers import settings
 from fabfiles.common import *
 from parse.milestone_2.parse_logs import *
 
+def copy_key():
+	for host in range(1, 11):
+		with settings(host_string='asl%d' % host):
+			run("echo \"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCioUBurO+ZmvEMYKddsWVXn+n9M2VkUFTk0otxsHYhrWtQpHLfeJzBOFuzg7QmEYGABwyH5BmwxoiRxhmfGMUPjDcghb++iyYlR5QmP59yehV1glUWlSGajiKHOE8CGU4xf5pgZKfIJroL5XqVe0V+eIYeGMleqS3l982eC6C+CQAWb1Jg55JRYcR8zKbIkyejAkJXun1DXk1zjt9qsGtXgLpHFuTGL9/37FAixUsuAI0oJNiiGYYlrsZxEDVtj8FpGGNfR9DgZElrCdkkhUJyRPVL4K1U3J6B1NvMhV/O18ptaUIVo970dw4QBV82GfU2oN3mJybbc3h5vMxHmIkYnkZ1bR/B2JvbBAHbcY0nSG/JpxaNjcePIfpkVj2Q4+vwJyPGfCHYZsWCXoLkC8gpmk+cAVQDQtBl7/D2P/lV+7TnWBCblbQpohwSPbmnS8cFZe0qX4QVX/mIPzPUu/prKi4DbPcNFQXn1sEdWr5e0LyQkKG5oKC5tFOqCwxJmVtA80YfN+JLficLpBf7srUH3DkAdPbf2ohNnnuNa+5zexOj0RW7zevhVXpT/SUvbNwyt0JZJhdpUemuxd1jCBKBZ9mvGrFFUfEAD2ymfPYFzmLegQAoa7knOToCN8+joWeNJ81c0aZqBec2o2ZxrcUgMAi/WIRkvrurj+9UFapFpw== matusiaa@foraslvms11\" >> .ssh/authorized_keys")
+
+def copy_fab():
+	local('scp -r fabfile* asl11:')
+	local('scp -r parse/ asl11:')
+
 def copy_parse():
 	for host in [2, 3, 4, 9, 10]:
 		local('scp parse/milestone_2/parse_logs_vms.py asl%s:~' % host)
@@ -36,8 +45,9 @@ def run_middleware(threads, rep, memcached_string, log_output_file):
 def run_max_throughput_experiment(clients, thread_pool):
 	hosts = [2, 3, 4, 9, 10]
 	run_time = 5 * 60
-	stats_time = 30
+	stats_time = 1
 	pause = 3 * 60
+	pause_2 = 30
 
 	run_memcached_many(5)
 
@@ -54,21 +64,28 @@ def run_max_throughput_experiment(clients, thread_pool):
 
 	stop_middleware()
 	stop_memcached_many(5)
+	time.sleep(pause_2)
 
 def run_max_throughput_experiments():
-	copy_workloads()
+	# copy_workloads()
 
-	min_clients_per_machine = 90
-	max_clients_per_machine = 150
-	clients_step = 2
+	min_clients_per_machine = 100
+	max_clients_per_machine = 120
+	clients_step = 10
 
-	min_thread_pool = 8
-	max_thread_pool = 16
-	thread_pool_step = 8
+	min_thread_pool = 10
+	max_thread_pool = 20
+	thread_pool_step = 10
 
 	for clients in range(min_clients_per_machine, max_clients_per_machine + 1, clients_step):
 		for thread_pool in range(min_thread_pool, max_thread_pool + 1, thread_pool_step):
 			run_max_throughput_experiment(clients, thread_pool)
+
+def run_experiments_remote():
+	copy_fab()
+	with settings(host_string='asl11'):
+		runbg('fab run_max_throughput_experiments',
+			'fab.log',  '/dev/null')
 
 def compute_max_throughput():
 	copy_parse()
@@ -169,3 +186,10 @@ def run_writes_experiments():
 		for percentage in percentages:
 			for replication in range(min_replication, max_replication + 1, 1):
 				run_writes_experiment(servers, percentage, replication)
+
+def move_old_files():
+	copy_parse()
+	for host in [2, 3, 4, 9, 10]:
+		with settings(host_string='asl%d' % host):
+			run('mkdir -p logs/old')
+			run('python3 -c "from parse_logs_vms import *; move_old_files()"')

@@ -89,12 +89,12 @@ def plot_max_throughput(const_type, value):
 	plt.savefig(plot_file_name)
 	plt.clf()
 
-min_threads = 8
-max_threads = 8
+min_threads = 10
+max_threads = 40
 step_threads = 10
-min_clients = 450
-max_clients = 700
-step_clients = 10
+min_clients = 500
+max_clients = 550
+step_clients = 50
 
 def plot_max_throughput_all():
 	for clients in range(min_clients, max_clients + 1, step_clients):
@@ -120,8 +120,9 @@ def plot_max_throughput_global():
 	plot_file_name = 'plots/max_throughput_all.png'
 
 	for threads in range(0, (max_threads - min_threads) // step_threads + 1):
-		plt.plot(x, y[threads])
+		plt.plot(x, y[threads], label = str(min_threads + threads * step_threads))
 	plt.grid(True)
+	plt.legend()
 
 	plt.title(plot_title_name)
 	plt.ylabel('Throughput [ops/s]')
