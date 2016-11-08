@@ -3,6 +3,14 @@ from fabric.context_managers import settings
 from fabfiles.common import *
 from parse.milestone_2.parse_logs import *
 
+def start_vms():
+	for host in range(1, 12):
+		local('azure vm start FOR_ASL foraslvms%d &' % host)
+
+def stop_vms():
+	for host in range(1, 12):
+		local('azure vm deallocate FOR_ASL foraslvms%d &' % host)
+
 def copy_key():
 	for host in range(1, 11):
 		with settings(host_string='asl%d' % host):
@@ -15,6 +23,12 @@ def copy_fab():
 def copy_parse():
 	for host in [2, 3, 4, 9, 10]:
 		local('scp parse/milestone_2/parse_logs_vms.py asl%s:~' % host)
+
+def copy_compressed():
+	i = 1
+	for host in [2, 3, 4, 9, 10]:
+		local('scp asl%s:logs/overall.tar.gz logs/milestone2/overall%d.tar.gz' % (host, i))
+		i += 1
 
 def copy_workloads():
 	for host in [2, 3, 4, 9, 10]:
@@ -35,31 +49,35 @@ def stop_memaslap_many(cnt=5):
 	for i in range(0, cnt):
 		stop_memaslap('asl' + str(servers[i]))
 
-def run_middleware(threads, rep, memcached_string, log_output_file):
+def run_middleware(threads, rep, memcached_string, log_output_file, std_output_file='/dev/null'):
 	with settings(host_string='asl11'):
 		with cd('asl-fall16-project'):
 			runbg('java -jar ./dist/middleware-matusiaa.jar -l 10.0.0.11 -p 11212 \
 					-t %d -r %d -m %s' % (threads, rep, memcached_string),
-					'/dev/null',  log_output_file)
+					std_output_file,  log_output_file)
 
 def run_max_throughput_experiment(clients, thread_pool):
 	hosts = [2, 3, 4, 9, 10]
 	run_time = 5 * 60
 	stats_time = 1
-	pause = 3 * 60
-	pause_2 = 30
+	pause = 2 * 60
+	pause_2 = 15
 
 	run_memcached_many(5)
 
 	output = '../logs/max_throughput_%d_%d.log' % (clients * len(hosts), thread_pool)
+	std_output = '../logs/std_max_throughput_%d_%d.log' % (clients * len(hosts), thread_pool)
+	log_output = '../logs/log_max_throughput_%d_%d.log' % (clients * len(hosts), thread_pool)
 	memcached_ips = [12, 14, 4, 13, 5]
 	memcached_string = ''
 	for ip in memcached_ips:
 		memcached_string += '10.0.0.%d:11212 ' % ip 
-	run_middleware(thread_pool, 1, memcached_string, output)
+	run_middleware(thread_pool, 1, memcached_string, output, std_output)
+
+	time.sleep(pause_2)
 
 	for host in hosts:
-		run_memaslap_async('asl' + str(host), run_time, stats_time, clients, output, ' -w 1k', 'max_throughput')
+		run_memaslap_async('asl' + str(host), run_time, stats_time, clients, output, ' -w 1k', 'max_throughput', log_output)
 	time.sleep(run_time + pause)
 
 	stop_middleware()
@@ -67,14 +85,14 @@ def run_max_throughput_experiment(clients, thread_pool):
 	time.sleep(pause_2)
 
 def run_max_throughput_experiments():
-	# copy_workloads()
+	copy_workloads()
 
-	min_clients_per_machine = 100
-	max_clients_per_machine = 120
+	min_clients_per_machine = 20
+	max_clients_per_machine = 100
 	clients_step = 10
 
 	min_thread_pool = 10
-	max_thread_pool = 20
+	max_thread_pool = 60
 	thread_pool_step = 10
 
 	for clients in range(min_clients_per_machine, max_clients_per_machine + 1, clients_step):
@@ -107,7 +125,7 @@ def copy_max_throughput_logs():
 def run_replication_experiment(servers, replication_factor): # replication 1, 2, 3 - type
 	memaslap_hosts = [2, 3, 4]
 	run_time = 5 * 60 # TODO: change
-	stats_time = 30
+	stats_time = 1 # TODO: change
 	pause = 3 * 60 # TODO: change
 	clients_per_machine = 100 # TODO: put another value
 	threads = 10 # TODO: put another value
@@ -147,7 +165,7 @@ def run_replication_experiments():
 def run_writes_experiment(servers, percentage, replication_factor): # replication 1, 2
 	memaslap_hosts = [2, 3, 4]
 	run_time = 5 * 60 # TODO: change
-	stats_time = 30
+	stats_time = 1 # TODO: change
 	pause = 3 * 60 # TODO: change
 	clients_per_machine = 100 # TODO: put another value
 	threads = 10 # TODO: put another value
@@ -187,9 +205,12 @@ def run_writes_experiments():
 			for replication in range(min_replication, max_replication + 1, 1):
 				run_writes_experiment(servers, percentage, replication)
 
-def move_old_files():
+def move_logs():
 	copy_parse()
+	directory_name = 'overall'
 	for host in [2, 3, 4, 9, 10]:
 		with settings(host_string='asl%d' % host):
-			run('mkdir -p logs/old')
-			run('python3 -c "from parse_logs_vms import *; move_old_files()"')
+			run('mkdir -p logs/%s' % directory_name)
+			run('python3 -c "from parse_logs_vms import *; move_logs(\'%s\')"' % directory_name)
+			with cd('logs'):
+				run('tar -zcvf %s.tar.gz %s' % (directory_name, directory_name))

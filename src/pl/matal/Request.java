@@ -56,10 +56,11 @@ public abstract class Request {
     public abstract int getType();
 
     public String getLogString() {
+        String type = (getType() == TYPE_GET ? "get" : "set");
         long tMw = instrumentationTimes[SEND_TO_CLIENT_TIME] - instrumentationTimes[RECEIVE_FROM_CLIENT_TIME];
         long tQueue = instrumentationTimes[DEQUEUE_TIME] - instrumentationTimes[ENQUEUE_TIME];
         long tServer = instrumentationTimes[RECEIVE_FROM_SERVER_TIME] - instrumentationTimes[SEND_TO_SERVER_TIME];
-        return tMw + " " + tQueue + " " + tServer + " " + (successFlag ? 1 : 0);
+        return type + " " + tMw + " " + tQueue + " " + tServer + " " + (successFlag ? 1 : 0);
     }
 
     public void setTime(int timeNumber, long time) {

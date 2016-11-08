@@ -44,9 +44,9 @@ def runbg(cmd, output_file=None, log_file='/dev/null', sockname="dtach"):
 		cmd = "/bin/bash -c '{} > /dev/null 2> /dev/null'".format(cmd)
 	return run('dtach -n `mktemp -u /tmp/%s.XXXX` %s'  % (sockname,cmd))
 
-def run_memaslap_async(host, run_time, stats_time, clients, output, additional = '', cfg = 'max_throughput'):
+def run_memaslap_async(host, run_time, stats_time, clients, output, additional = '', cfg = 'max_throughput', log_output='/dev/null'):
 	with settings(host_string=host):
 		with cd('libmemcached-1.0.18'):
 			runbg('./clients/memaslap -s %s:11212 -T %d -c %d -o 0.9 -S %ss -t %ss -F ../workloads/%s.cfg' 
 					% (middleware_server, clients, clients, stats_time, run_time, cfg) + additional,
-					output)
+					output, log_output)
