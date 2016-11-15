@@ -20,26 +20,24 @@ def copy_fab():
 	local('scp -r fabfile* asl11:')
 	local('scp -r parse/ asl11:')
 
-def copy_parse():
-	for host in [2, 3, 4, 9, 10]:
-		local('scp parse/milestone_2/parse_logs_vms.py asl%s:~' % host)
-
-def copy_compressed():
-	i = 1
-	for host in [2, 3, 4, 9, 10]:
-		local('scp asl%s:logs/overall.tar.gz logs/milestone2/overall%d.tar.gz' % (host, i))
-		i += 1
+def copy_parse(cnt=5):
+	hosts = [2, 3, 4, 9, 10]
+	for i in range(0, cnt):
+		local('scp parse/milestone_2/parse_logs_vms.py asl%s:~' % hosts[i])
 
 def copy_workloads():
 	for host in [2, 3, 4, 9, 10]:
-		local('scp workloads/* asl%s:workloads/' % host)
+		local('scp asl-fall16-project/workloads/* asl%s:workloads/' % host)
+
+def copy_plots():
+	local('cp plots/*.png reports/milestone2/plots')
 
 def run_memcached_many(cnt=5):
-	hosts = [1, 5, 6, 7, 8]
+	hosts = [1, 5, 6, 7, 8, 9, 10]
 	for i in range(0, cnt):
 		run_memcached('asl' + str(hosts[i]), ' -m 256')
 
-def stop_memcached_many(cnt=5):
+def stop_memcached_many(cnt=7):
 	servers = [1, 5, 6, 7, 8, 9, 10]
 	for i in range(0, cnt):
 		stop_memcached('asl' + str(servers[i]))
@@ -55,6 +53,20 @@ def run_middleware(threads, rep, memcached_string, log_output_file, std_output_f
 			runbg('java -jar ./dist/middleware-matusiaa.jar -l 10.0.0.11 -p 11212 \
 					-t %d -r %d -m %s' % (threads, rep, memcached_string),
 					std_output_file,  log_output_file)
+
+def combine_logs(experiment, response_time=False, servers=5, repetitions=False):
+	combine_throughput('logs_working/%s' % experiment, servers, repetitions)
+	if response_time:
+		combine_response_time('logs_working/%s-response_time' % experiment, servers, repetitions)
+
+def run_experiments_remote():
+	copy_fab()
+	local('scp workloads/* asl11:asl-fall16-project/workloads/')
+	with settings(host_string='asl11'):
+		runbg('fab run_writes_experiments',
+			'fab.log',  '/dev/null')
+
+# --------- Max throughput task ------------- 
 
 def run_max_throughput_experiment(clients, thread_pool):
 	hosts = [2, 3, 4, 9, 10]
@@ -99,12 +111,6 @@ def run_max_throughput_experiments():
 		for thread_pool in range(min_thread_pool, max_thread_pool + 1, thread_pool_step):
 			run_max_throughput_experiment(clients, thread_pool)
 
-def run_experiments_remote():
-	copy_fab()
-	with settings(host_string='asl11'):
-		runbg('fab run_max_throughput_experiments',
-			'fab.log',  '/dev/null')
-
 def compute_max_throughput():
 	copy_parse()
 	for host in [2, 3, 4, 9, 10]:
@@ -113,8 +119,7 @@ def compute_max_throughput():
 	copy_max_throughput_logs()
 
 def combine_max_throughput():
-	combine_throughput('logs_working/max_throughput')
-	combine_response_time('logs_working/max_throughput-response_time')
+	combine_logs('max_throughput', True)
 
 def copy_max_throughput_logs():
 	hosts = [2, 3, 4, 9, 10]
@@ -122,34 +127,47 @@ def copy_max_throughput_logs():
 		local('scp asl%s:logs/max_throughput.log ./logs_working/max_throughput_%d.log' % (hosts[i], i + 1))
 		local('scp asl%s:logs/max_throughput-response_time.log ./logs_working/max_throughput-response_time_%d.log' % (hosts[i], i + 1))
 
-def run_replication_experiment(servers, replication_factor): # replication 1, 2, 3 - type
+def copy_max_throughput_compressed():
+	i = 1
+	for host in [2, 3, 4, 9, 10]:
+		# local('scp asl%s:logs/overall.tar.gz logs/milestone2/overall%d.tar.gz' % (host, i))
+		local('scp asl%s:logs/detailed.tar.gz logs/milestone2/detailed_%d.tar.gz' % (host, i))
+		i += 1
+
+
+# --------- Effect of replication task -------------
+
+def run_replication_experiment(servers, replication_factor, repetition): # replication 1, 2, 3 - type
 	memaslap_hosts = [2, 3, 4]
-	run_time = 5 * 60 # TODO: change
-	stats_time = 1 # TODO: change
-	pause = 3 * 60 # TODO: change
-	clients_per_machine = 100 # TODO: put another value
-	threads = 10 # TODO: put another value
+	run_time = 3 * 60
+	stats_time = 1
+	pause = 30
+	pause_2 = 15
+	clients_per_machine = 70
+	threads = 30
 
 	replication_values = [1, round(servers/2), servers]
-	replication = replication_values[replication_factor]
+	replication = replication_values[replication_factor - 1]
 	run_memcached_many(servers)
 
-	output = '../logs/replication_%d_%d.log' % (replication_factor, servers)
+	output = '../logs/replication_%d_%d[%d].log' % (replication_factor, servers, repetition)
 	memcached_ips = [12, 14, 4, 13, 5, 10, 8]
 	memcached_string = ''
 	for i in range(0, servers):
 		memcached_string += '10.0.0.%d:11212 ' % memcached_ips[i] 
-	run_middleware(thread_pool, replication, memcached_string, output)
+	run_middleware(threads, replication, memcached_string, output)
+	time.sleep(pause_2)
 
 	for host in memaslap_hosts:
-		run_memaslap_async('asl' + str(host), run_time, stats_time, clients_per_machine, output, ' -w 1k', 'replication')
+		run_memaslap_async('asl' + str(host), run_time, stats_time, clients_per_machine, output, cfg='replication')
 	time.sleep(run_time + pause)
 
 	stop_middleware()
 	stop_memcached_many(servers)
+	time.sleep(pause_2)
 
 def run_replication_experiments():
-	copy_workloads()
+	# copy_workloads()
 
 	min_servers = 3
 	max_servers = 7
@@ -158,35 +176,69 @@ def run_replication_experiments():
 	min_replication = 1
 	max_replication = 3
 
+	repetitions = 3
 	for servers in range(min_servers, max_servers + 1, step_servers):
 		for replication in range(min_replication, max_replication + 1, 1):
-			run_replication_experiment(servers, replication)
+			for rep in range(1, repetitions + 1):
+				print(str(replication) + ' ' + str(servers) + ' ' + str(rep));
+				run_replication_experiment(servers, replication, rep)
 
-def run_writes_experiment(servers, percentage, replication_factor): # replication 1, 2
+def compute_replication():
+	copy_parse(3)
+	for host in [2, 3, 4]:
+		with settings(host_string='asl%d' % host):
+			run('python3 -c "from parse_logs_vms import *; parse_replication()"')
+	copy_replication_logs()
+
+def compute_replication_middleware():
+	local('scp parse/milestone_2/parse_logs_vms.py asl11:~')
+	local('scp parse/milestone_2/parse_logs_middleware.py asl11:~')
+	with settings(host_string='asl11'):
+		run('python3 -c "from parse_logs_middleware import *; parse_replication_middleware()"')
+
+def combine_replication():
+	combine_logs('replication', servers=3, repetitions=True)
+	combine_vms_repetitions('replication')
+
+def copy_replication_logs():
+	hosts = [2, 3, 4]
+	for i in range(0, len(hosts)):
+		local('scp asl%s:logs/replication.log ./logs_working/replication_%d.log' % (hosts[i], i + 1))
+		# local('scp asl%s:logs/max_throughput-response_time.log ./logs_working/max_throughput-response_time_%d.log' % (hosts[i], i + 1))
+
+def copy_replication_middleware_logs():
+	local('scp asl11:logs/replication-*.log ./logs_working/')
+
+# --------- Effect of writes task -------------
+
+def run_writes_experiment(servers, percentage, replication_factor, repetition): # replication 1, 2
 	memaslap_hosts = [2, 3, 4]
-	run_time = 5 * 60 # TODO: change
-	stats_time = 1 # TODO: change
-	pause = 3 * 60 # TODO: change
-	clients_per_machine = 100 # TODO: put another value
-	threads = 10 # TODO: put another value
+	run_time = 3 * 60
+	stats_time = 1
+	pause = 30
+	pause_2 = 15
+	clients_per_machine = 70
+	threads = 30
 
 	replication_values = [1, servers]
-	replication = replication_values[replication_factor]
+	replication = replication_values[replication_factor - 1]
 	run_memcached_many(servers)
 
-	output = '../logs/writes_%d_%d.log' % (replication_factor, servers)
+	output = '../logs/writes_%d_%d_%d[%d].log' % (percentage, servers, replication_factor, repetition)
 	memcached_ips = [12, 14, 4, 13, 5, 10, 8]
 	memcached_string = ''
 	for i in range(0, servers):
 		memcached_string += '10.0.0.%d:11212 ' % memcached_ips[i] 
-	run_middleware(thread_pool, replication, memcached_string, output)
+	run_middleware(threads, replication, memcached_string, output)
+	time.sleep(pause_2)
 
 	for host in memaslap_hosts:
-		run_memaslap_async('asl' + str(host), run_time, stats_time, clients_per_machine, output, ' -w 1k', 'writes_' + str(percentage))
+		run_memaslap_async('asl' + str(host), run_time, stats_time, clients_per_machine, output, ' -w 1k', cfg='writes_' + str(percentage))
 	time.sleep(run_time + pause)
 
 	stop_middleware()
 	stop_memcached_many(servers)
+	time.sleep(pause_2)
 
 def run_writes_experiments():
 	copy_workloads()
@@ -200,15 +252,25 @@ def run_writes_experiments():
 	min_replication = 1
 	max_replication = 2
 
+	repetitions = 3
+
 	for servers in range(min_servers, max_servers + 1, step_servers):
 		for percentage in percentages:
 			for replication in range(min_replication, max_replication + 1, 1):
-				run_writes_experiment(servers, percentage, replication)
+				for repetition in range(1, repetitions + 1):
+					print(str(replication) + ' ' + str(servers) + ' ' + str(replication) + ' ' + str(repetition));
+					run_writes_experiment(servers, percentage, replication, repetition)
+
+
+def combine_writes():
+	combine_logs('writes')
+
+#-------------------------------------------
 
 def move_logs():
-	copy_parse()
-	directory_name = 'overall'
-	for host in [2, 3, 4, 9, 10]:
+	copy_parse(3)
+	directory_name = 'replication_old'
+	for host in [2, 3, 4]:
 		with settings(host_string='asl%d' % host):
 			run('mkdir -p logs/%s' % directory_name)
 			run('python3 -c "from parse_logs_vms import *; move_logs(\'%s\')"' % directory_name)

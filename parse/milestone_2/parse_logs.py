@@ -3,14 +3,15 @@ import numpy as np
 from parse.milestone_2.parse_logs_vms import *
 import math
 
-def combine_throughput(fbase):
-	combine(fbase, True)
+# --------- Combining ------------- 
 
-def combine_response_time(fbase):
-	combine(fbase, False)
+def combine_throughput(fbase, servers=5, rep=False):
+	combine(fbase, True, servers, rep)
 
-def combine(fbase, is_throughput):
-	servers = 5
+def combine_response_time(fbase, servers=5, rep=False):
+	combine(fbase, False, servers, rep)
+
+def combine(fbase, is_throughput, servers, rep):
 	res = {}
 	cnts = {}
 	for i in range(1, servers + 1):
@@ -18,11 +19,16 @@ def combine(fbase, is_throughput):
 			next(f)
 			for line in f:
 				values = line.split(',')
-				key = values[0] + ',' + values[1]
+				if rep:
+					key = values[0] + ',' + values[1] + ',' + values[2]
+					offset = 3
+				else:
+					key = values[0] + ',' + values[1]
+					offset = 2
 				[value, std] = res.get(key, [0, 0])
 				cnt = cnts.get(key, 0)
-				value += float(values[2])
-				std += math.pow(float(values[3]), 2)
+				value += float(values[offset])
+				std += math.pow(float(values[offset + 1]), 2)
 				res[key] = [value, std]
 				cnts[key] = cnt + 1
 
@@ -30,7 +36,7 @@ def combine(fbase, is_throughput):
 	max_value = 0
 	for key, values in res.items():
 		new_key = key.split(',')
-		if len(new_key[0]) < 3:
+		if (servers == 5) and (len(new_key[0]) < 3):
 			new_key[0] = '0' + new_key[0]
 		if is_throughput:
 			value = values[0]
@@ -39,14 +45,63 @@ def combine(fbase, is_throughput):
 				max_key = key
 		else:
 			value = values[0] / cnts[key]
-		std = math.sqrt(values[1] / cnts[key])
+		std = math.sqrt(values[1])
 		data.append(new_key + [str(value), str(std)])
 	data.sort()
 
 	if is_throughput:
 		print(max_key, max_value)
 
-	write_to_named_file(fbase + '.log', data)
+	res_file_name = fbase
+	if rep:
+		res_file_name += '-rep'
+
+	write_to_named_file(res_file_name + '.log', data)
+
+def combine_vms_repetitions(fbase):
+	f = open('./logs_working/' + fbase + '-rep.log', 'r')
+	res = {}
+	cnts = {}
+	for line in f:
+		values = line.split(',')
+		key = values[0] + ',' + values[1]
+		[value, std] = res.get(key, [0, 0])
+		cnt = cnts.get(key, 0)
+		value += float(values[3])
+		std += float(values[4])
+		res[key] = [value, std]
+		cnts[key] = cnt + 1
+
+	data = []
+	max_value = 0
+	for key, values in res.items():
+		new_key = key.split(',')
+		value = values[0] / cnts[key]
+		std = values[1] / cnts[key]
+		data.append(new_key + [str(value), str(std)])
+	data.sort()
+	write_to_named_file('./logs_working/' + fbase + '.log', data)
+
+# --------- Middleware logs -------------
+def parse_middleware_logs(fname, type):
+	stats_cnt = 4
+	res = []
+	for i in range(0, stats_cnt):
+		res.append([])
+	with open(fname, 'r') as f:
+		lines = f.readlines()
+		j = 1
+		while j < len(lines):
+			line = lines[j].split()
+			if line[1] == type:
+				for i in range(0, stats_cnt):
+					res[i].append(int(line[2 + i]))
+			j += 2
+
+
+	for i in range(0, stats_cnt):
+		print(str(np.average(res[i])) + ' ' + str(np.std(res[i])) + ' ' + str(np.percentile(res[i], 25)))
+
 
 # --------- Max throughput task ------------- 
 
@@ -131,36 +186,48 @@ def plot_max_throughput_all():
 		plot_max_throughput(1, threads)
 		plot_max_throughput_response_time(1, threads)
 
-def plot_max_throughput_global():
-	plot_max_throughput_throughput_global()
-	plot_max_throughput_response_time_global()
+def plot_max_throughput_global(detailed=False):
+	plot_max_throughput_throughput_global(detailed)
+	plot_max_throughput_response_time_global(detailed)
 
-def plot_max_throughput_throughput_global():
-	fname = 'logs_working/max_throughput.log'
+def plot_max_throughput_throughput_global(detailed=False):
+	if (detailed):
+		dir_name = 'detailed'
+		min_threads = 30
+		max_threads = 30
+	else:
+		dir_name = 'overall'
+		min_threads = 10
+		max_threads = 60
+	fname = 'logs_working/%s/max_throughput.log' % dir_name
 	x = []
 	y = []
+	std = []
 	for threads in range(min_threads, max_threads + 1, step_threads):
 		x.append([])
 		y.append([])
+		std.append([])
 
 	with open(fname, 'r') as f:
 		for line in f:
 			line = line.split(',')
 			clients = int(line[0])
-			# if (clients < 450) or (clients > 600) or (int(line[1]) < 30):
-				# continue
 			threads_it = (int(line[1]) - min_threads) // step_threads
-			x[threads_it].append(clients) 
-			y[threads_it].append(line[2])
+			x[threads_it].append(int(clients))
+			y[threads_it].append(float(line[2]))
+			std[threads_it].append(float(line[3]))
 
 	plot_title_name = 'Maximum throughput experiment'
-	plot_file_name = 'plots/max_throughput_all.png'
+	plot_file_name = 'plots/max_throughput_all_%s.png' % dir_name
 
+	i = 0
 	for threads in range(0, (max_threads - min_threads) // step_threads + 1):
-		plt.plot(x[threads], y[threads], label = str(min_threads + threads * step_threads))
+		plt.errorbar(list(map(lambda el: el + i, x[threads])), y[threads], std[threads], label = str(min_threads + threads * step_threads))
+		i += 3
 	plt.grid(True)
-	plt.legend(title = 'Threads', bbox_to_anchor=(1, 1), loc='upper left', ncol=1)
-	plt.tight_layout(pad=6)
+	if not detailed:
+		plt.legend(title = 'Threads', bbox_to_anchor=(1, 1), loc='upper left', ncol=1)
+		plt.tight_layout(pad=6)
 
 	plt.title(plot_title_name)
 	plt.ylabel('Throughput [ops/s]')
@@ -169,8 +236,16 @@ def plot_max_throughput_throughput_global():
 	plt.savefig(plot_file_name)
 	plt.clf()
 
-def plot_max_throughput_response_time_global():
-	fname = 'logs_working/max_throughput-response_time.log'
+def plot_max_throughput_response_time_global(detailed=False):
+	if (detailed):
+		dir_name = 'detailed'
+		min_threads = 30
+		max_threads = 30
+	else:
+		dir_name = 'overall'
+		min_threads = 10
+		max_threads = 60
+	fname = 'logs_working/%s/max_throughput-response_time.log' % dir_name
 	x = []
 	y = []
 	std = []
@@ -187,13 +262,17 @@ def plot_max_throughput_response_time_global():
 			threads_it = (int(line[1]) - min_threads) // step_threads
 			x[threads_it].append(clients) 
 			y[threads_it].append(float(line[2]))
+			std[threads_it].append(float(line[3]))
 
 	plot_title_name = 'Maximum throughput experiment'
-	plot_file_name = 'plots/max_throughput-response_time_all.png'
+	plot_file_name = 'plots/max_throughput-response_time_all_%s.png' % dir_name
 
 	for threads in range(0, (max_threads - min_threads) // step_threads + 1):
 		plt.plot(x[threads], y[threads])		
 	plt.grid(True)
+	if not detailed:
+		plt.legend(title = 'Threads', bbox_to_anchor=(1, 1), loc='upper left', ncol=1)
+		plt.tight_layout(pad=6)
 
 	plt.title(plot_title_name)
 	plt.ylabel('Response time[us]')
@@ -210,21 +289,34 @@ replication_factors_values = [1, 2, 3]
 replication_experiment_title = '"Effects of replication" experiment'
 
 def plot_replication():
-	plot_replication_general_throughput()
-	plot_replication_general_response_time()
+	plot_replication_general('replication', 'replication', is_time=False)
+	plot_replication_general('replication-get', 'replication-get', header_line=True)
+	plot_replication_general('replication-set', 'replication-set', header_line=True)
+	plot_replication_general('replication-get', 'replication-get-queue', 4, True)
+	plot_replication_general('replication-get', 'replication-get-servers', 6, True)
+	plot_replication_general('replication-set', 'replication-set-queue', 4, True)
+	plot_replication_general('replication-set', 'replication-set-servers', 6, True)
 
-def plot_replication_general_throughput():
-	fname = 'logs_working/replication-throughput.log'
+def plot_replication_general(fbase, title, which_params=2, header_line=False, is_time=True):
+	print(title)
+	fname = 'logs_working/%s.log' % fbase
+
+	print(fname)
 
 	x = replication_factors_values
 	y = []
+	std = []
 	for servers in servers_values:
 		y.append([])
+		std.append([])
 
 	with open(fname, 'r') as f:
+		if header_line:
+			next(f)
 		for line in f:
 			line = line.split(',')
-			y[replication_factors_values.index(int(line[1]))].append(int(line[2])) # assuming somehow sorted
+			y[replication_factors_values.index(int(line[0]))].append(float(line[which_params])) # assuming somehow sorted
+			std[replication_factors_values.index(int(line[0]))].append(float(line[which_params + 1])) # assuming somehow sorted
 
 	N = 3
 
@@ -236,20 +328,32 @@ def plot_replication_general_throughput():
 	i = 0
 	colors = ['r', 'g', 'b']
 	for replication in replication_factors_values:
-		rects.append(ax.bar(ind + i * width, y[i], width, color=colors[i]))
+		rects.append(
+				ax.bar(ind + i * width, y[i], width, color=colors[i], yerr=std[i],
+						error_kw=dict(ecolor='purple', lw=1, capsize=2, capthick=2)))
 		i += 1
 
 
-	ax.set_xticks(ind + 2 * width)
+	ax.tick_params(axis='x', which='both', top='off', bottom='off')
+	ax.set_xticks(ind + 2 * width - 1/8)
 	ax.set_xticklabels(('3', '5', '7'))
 
-	ax.legend((rects[0][0], rects[1][0], rects[2][0]), ('None', 'Half', 'All'), title='Replication factor')
+	legend = ax.legend((rects[0][0], rects[1][0], rects[2][0]), ('None', 'Half', 'All'), title='Replication factor',
+			bbox_to_anchor=(1, 1), loc='upper left', ncol=1, fontsize='small')
+	plt.setp(legend.get_title(),fontsize='x-small')
+	plt.tight_layout(pad=8)
 
 	plot_title_name = replication_experiment_title
-	plot_file_name = 'plots/replication_throughput.png' 
+	plot_file_name = 'plots/%s.png' % title 
 
+	plt.subplots_adjust(top=0.9, bottom=0.1)
+	plt.grid(True)
+	plt.gca().set_ylim(bottom=0)
 	plt.title(plot_title_name)
-	plt.ylabel('Throughput [ops/s]')
+	if is_time:
+		plt.ylabel('Time in the middleware [us]')
+	else:
+		plt.ylabel('Throughput [ops/s]')
 	plt.xlabel('Servers')
 	plt.savefig(plot_file_name)
 	plt.clf()

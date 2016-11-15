@@ -18,8 +18,7 @@ def init_connections():
 
 def clear_keys():
 	for host_number in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]:
-		local('ssh-keygen -f "/home/aleksander/.ssh/known_hosts" \
-			-R matusiaaforaslvms%d.westeurope.cloudapp.azure.com' % host_number)
+		local('ssh-keygen -R matusiaaforaslvms%d.westeurope.cloudapp.azure.com' % host_number)
 
 def run_memcached(host, additional = ''):
 	with settings(host_string=host):

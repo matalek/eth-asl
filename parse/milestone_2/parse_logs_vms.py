@@ -6,11 +6,13 @@ import statistics as st
 def is_to_move(filename):
 	# if (not filename.startswith('max_throughput')):
 	# 	return True
-	if (not filename.startswith('max_throughput')):
+	if (not filename.startswith('replication')):
 		return False
-	filename = filename.replace('max_throughput_', '')
-	filename = filename.replace('.log', '')
-	parts = filename.split('_')
+	# filename = filename.replace('max_throughput_', '')
+	# filename = filename.replace('.log', '')
+	# parts = filename.split('_')
+	if filename.find('[') != -1:
+		return False
 	return True
 	# if (int(parts[0]) >= 450) and (int(parts[0]) <= 600) and (int(parts[1]) >= 30):
 	# 	return True
@@ -45,11 +47,15 @@ def parse_max_throughput():
 
 def parse_replication():
 	parse_throughput('replication', ['Replication factor', 'Number of servers', 'TPS'])
+	middleware_headers = ['Replication factor', 'Number of servers', 'Middleware time', 'Middleware time std', 
+			'Queue time', 'Queue time std', 'Server time', 'Server time std']
 
 def get_params(fbase, filename):
 	data = filename
 	data = data.replace(fbase + '_', '')
 	data = data.replace('.log', '')
+	data = data.replace('[', '_')
+	data = data.replace(']', '')
 	data = data.split('_')
 	return data
 
@@ -66,8 +72,8 @@ def parse_throughput(fbase, headers):
 	res = [headers] + res
 	write_to_file(fbase, res)
 
-start_time = 120
-end_time = 180
+start_time = 60
+end_time = 120
 
 def parse_throughput_single(fname):
 	print(fname)
