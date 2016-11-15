@@ -261,9 +261,17 @@ def run_writes_experiments():
 					print(str(replication) + ' ' + str(servers) + ' ' + str(replication) + ' ' + str(repetition));
 					run_writes_experiment(servers, percentage, replication, repetition)
 
+def compute_writes_middleware():
+	local('scp parse/milestone_2/parse_logs_vms.py asl11:~')
+	local('scp parse/milestone_2/parse_logs_middleware.py asl11:~')
+	with settings(host_string='asl11'):
+		run('python3 -c "from parse_logs_middleware import *; parse_writes_middleware()"')
 
 def combine_writes():
 	combine_logs('writes')
+
+def copy_writes_middleware_logs():
+	local('scp asl11:logs/writes-*.log ./logs_working/')
 
 #-------------------------------------------
 
