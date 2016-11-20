@@ -3,33 +3,42 @@ import numpy as np
 from parse.milestone_2.parse_logs_vms import *
 import math
 
+colors_6 = ['b', 'g', 'r', 'c', 'm', 'y']
+
 # --------- Combining ------------- 
 
-def combine_throughput(fbase, servers=5, rep=False):
-	combine(fbase, True, servers, rep)
+per_values = [25, 90]
 
-def combine_response_time(fbase, servers=5, rep=False):
-	combine(fbase, False, servers, rep)
+def combine_throughput(fbase, servers=5, params_size=2, rep=False):
+	combine(fbase, True, servers, params_size, rep)
 
-def combine(fbase, is_throughput, servers, rep):
+def combine_response_time(fbase, servers=5, params_size=2, rep=False):
+	combine(fbase, False, servers, params_size, rep)
+
+def combine(fbase, is_throughput, servers, params_size=2, rep=False):
 	res = {}
 	cnts = {}
+	stats = {}
 	for i in range(1, servers + 1):
 		with open(fbase + '_' + str(i) + '.log', 'r') as f:
 			next(f)
 			for line in f:
 				values = line.split(',')
-				if rep:
-					key = values[0] + ',' + values[1] + ',' + values[2]
-					offset = 3
-				else:
-					key = values[0] + ',' + values[1]
-					offset = 2
+				key = ','.join(values[:params_size])
 				[value, std] = res.get(key, [0, 0])
 				cnt = cnts.get(key, 0)
-				value += float(values[offset])
-				std += math.pow(float(values[offset + 1]), 2)
+				value += float(values[params_size])
+				std += math.pow(float(values[params_size + 1]), 2)
 				res[key] = [value, std]
+
+				if not is_throughput:
+					my_stats = values[params_size + 2:]
+					cur_stats = stats.get(key, [])
+					if cur_stats == []:
+						for i in range(0, len(my_stats)):
+							cur_stats.append(0)
+					stats[key] = combine_stats(cur_stats, my_stats)
+
 				cnts[key] = cnt + 1
 
 	data = []
@@ -46,7 +55,12 @@ def combine(fbase, is_throughput, servers, rep):
 		else:
 			value = values[0] / cnts[key]
 		std = math.sqrt(values[1])
-		data.append(new_key + [str(value), str(std)])
+		if is_throughput:
+			perc = []
+		else:
+			perc = find_percentages(stats[key])
+			perc = list(map(lambda el: str(el), perc))
+		data.append(new_key + [str(value), str(std)] + perc)
 	data.sort()
 
 	if is_throughput:
@@ -58,17 +72,55 @@ def combine(fbase, is_throughput, servers, rep):
 
 	write_to_named_file(res_file_name + '.log', data)
 
-def combine_vms_repetitions(fbase):
+def combine_stats(cur, stats):
+	res = []
+	for i in range(0, min(len(cur), len(stats))):
+		if (i % 2) == 0:
+			res.append(stats[i])
+		else:
+			res.append(cur[i] + int(stats[i]))
+	return res
+
+def find_percentages(perc):
+	percentages_res = []
+
+	i = 1
+	summ = 0
+	while i < len(perc):
+		summ += perc[i]
+		i += 2
+
+	for p in per_values:
+		cur_summ = 0
+		min_dist = -1
+		for i in range(0, len(perc)):
+			if (i % 2) == 0:
+				value = perc[i]
+			else:
+				cnt = perc[i]
+				cur_summ += cnt
+				cur_per = cur_summ * 100.0 / summ
+				cur_dist = math.fabs(cur_per - p)
+				if (min_dist == -1) or (cur_dist < min_dist): 
+					min_dist = cur_dist
+					res_value = value
+					res_percentage = cur_per
+		# percentages_res.append(str(int(res_percentage)))
+		percentages_res.append(str(res_value))
+
+	return percentages_res
+
+def combine_vms_repetitions(fbase, params_size):
 	f = open('./logs_working/' + fbase + '-rep.log', 'r')
 	res = {}
 	cnts = {}
 	for line in f:
 		values = line.split(',')
-		key = values[0] + ',' + values[1]
+		key = ','.join(values[:params_size])
 		[value, std] = res.get(key, [0, 0])
 		cnt = cnts.get(key, 0)
-		value += float(values[3])
-		std += float(values[4])
+		value += float(values[params_size + 1]) # skipping repetition number
+		std += float(values[params_size + 2])
 		res[key] = [value, std]
 		cnts[key] = cnt + 1
 
@@ -100,13 +152,27 @@ def parse_middleware_logs(fname, type):
 
 	for i in range(0, stats_cnt):
 		cnt = len(res[i])
-		res[i] = res[i][int(2* cnt / 5):int(4*cnt / 5)]
+		res[i] = res[i][int(cnt / 5):int(4*cnt / 5)]
 		average = np.average(res[i])
 		std = np.std(res[i])
 		print(str(average) + ' ' + str(std) + ' ' + str(std/average))
 
 
 # --------- Max throughput task ------------- 
+
+def get_directory(detailed):
+	if detailed == 'True':
+		directory = 'detailed'
+	else:
+		directory = 'overall'
+	return directory
+
+def get_directory_bool(detailed):
+	if detailed:
+		directory = 'detailed'
+	else:
+		directory = 'overall'
+	return directory
 
 def plot_max_throughput(const_type, value):
 	value = str(value)
@@ -189,6 +255,10 @@ def plot_max_throughput_all():
 		plot_max_throughput(1, threads)
 		plot_max_throughput_response_time(1, threads)
 
+def plot_max_throughput_global_all():
+	plot_max_throughput_global(True)
+	plot_max_throughput_global(False)
+
 def plot_max_throughput_global(detailed=False):
 	plot_max_throughput_throughput_global(detailed)
 	plot_max_throughput_response_time_global(detailed)
@@ -224,9 +294,12 @@ def plot_max_throughput_throughput_global(detailed=False):
 	plot_file_name = 'plots/max_throughput_all_%s.png' % dir_name
 
 	i = 0
+	col_num = 0
 	for threads in range(0, (max_threads - min_threads) // step_threads + 1):
-		plt.errorbar(list(map(lambda el: el + i, x[threads])), y[threads], std[threads], label = str(min_threads + threads * step_threads))
+		plt.errorbar(list(map(lambda el: el + i, x[threads])), y[threads], std[threads], color=colors_6[col_num], fmt='|')
+		plt.plot(x[threads], y[threads], label = str(min_threads + threads * step_threads), color=colors_6[col_num])
 		i += 3
+		col_num += 1
 	plt.grid(True)
 	if not detailed:
 		plt.legend(title = 'Threads', bbox_to_anchor=(1, 1), loc='upper left', ncol=1)
@@ -236,6 +309,7 @@ def plot_max_throughput_throughput_global(detailed=False):
 	plt.ylabel('Throughput [ops/s]')
 	plt.xlabel('Clients')
 	plt.gca().set_ylim(bottom=0)
+	plt.gca().set_xlim(left=0)
 	plt.savefig(plot_file_name)
 	plt.clf()
 
@@ -249,14 +323,20 @@ def plot_max_throughput_response_time_global(detailed=False):
 		min_threads = 10
 		max_threads = 60
 	fname = 'logs_working/%s/max_throughput-response_time.log' % dir_name
+	# fname = 'logs_working/max_throughput-response_time.log'
 	x = []
 	y = []
+	per = []
 	std = []
 
 	for threads in range(min_threads, max_threads + 1, step_threads):
 		x.append([])
 		y.append([])
 		std.append([])
+		temp = []
+		for p in per_values:
+			temp.append([])
+		per.append(temp)
 
 	with open(fname, 'r') as f:
 		for line in f:
@@ -266,23 +346,59 @@ def plot_max_throughput_response_time_global(detailed=False):
 			x[threads_it].append(clients) 
 			y[threads_it].append(float(line[2]))
 			std[threads_it].append(float(line[3]))
+			i = 0
+			for p in per_values:
+				per[threads_it][i].append(int(line[4 + i]))
+				i += 1
 
 	plot_title_name = 'Maximum throughput experiment'
 	plot_file_name = 'plots/max_throughput-response_time_all_%s.png' % dir_name
 
+	t = 0
 	for threads in range(0, (max_threads - min_threads) // step_threads + 1):
-		plt.plot(x[threads], y[threads])		
+		plt.plot(x[threads], y[threads], color=colors_6[t], label = str(min_threads + threads * step_threads))
+		i = 0
+		for p in per_values:
+			plt.plot(x[threads], list(map(lambda el: el + t*1000, per[threads][i])), color=colors_6[t])
+			i += 1
+		t += 1
+
 	plt.grid(True)
 	if not detailed:
 		plt.legend(title = 'Threads', bbox_to_anchor=(1, 1), loc='upper left', ncol=1)
 		plt.tight_layout(pad=6)
 
+	if detailed:
+		plt.text(250, 31000, '90%')
+		plt.text(250, 6000, '25%')
+	else:
+		plt.text(450, 75000, '90%')
+		plt.text(450, 10000, '25%')
+
 	plt.title(plot_title_name)
-	plt.ylabel('Response time[us]')
+	plt.ylabel('Response time [us]')
 	plt.xlabel('Clients')
 	plt.gca().set_ylim(bottom=0)
+	plt.gca().set_xlim(left=0)
 	plt.savefig(plot_file_name)
 	plt.clf()
+
+def plot_max_throughput_breakdown():
+	fname = 'logs_working/detailed-breakdown/max_throughput_210_30.log'
+	labels = ['queue', 'servers', 'actively processed']
+	values = [2557, 4119, 47]
+
+	plot_title_name = 'Maximum throughput experiment - breakdown of time'
+	plot_file_name = 'plots/max_throughput-breakdown.png'
+
+	plt.pie(values, labels=labels,
+        autopct='%1.1f%%', startangle=270)
+	plt.axis('equal')
+
+	plt.title(plot_title_name, y = 1.04)
+	plt.savefig(plot_file_name)
+	plt.clf()
+
 
 # --------- Effect of replication task -------------
 
@@ -293,23 +409,17 @@ replication_experiment_title = '"Effects of replication" experiment'
 
 def plot_replication():
 	plot_replication_general('replication', 'replication', is_time=False)
-	plot_replication_general('replication-get', 'replication-get', header_line=True)
-	plot_replication_general('replication-set', 'replication-set', header_line=True)
-	plot_replication_general('replication-get', 'replication-get-queue', 4, True)
-	plot_replication_general('replication-get', 'replication-get-servers', 6, True)
-	plot_replication_general('replication-set', 'replication-set-queue', 4, True)
-	plot_replication_general('replication-set', 'replication-set-servers', 6, True)
+	plot_replication_general('replication-response_time', 'replication-response_time', is_time=True)
+	for type in ['get', 'set', 'all']:
+		plot_replication_general('replication-%s' % type, 'replication-%s' % type, header_line=True)
+		plot_replication_general('replication-%s' % type, 'replication-%s-queue' % type, 4, True)
+		plot_replication_general('replication-%s' % type, 'replication-%s-servers' % type, 6, True)
+	for type in ['get', 'set']:
+		plot_replication_general('replication-%s' % type, 'replication-%s-scaled' % type, header_line=True, y_lim=25000)
 
-	# for type in ['get', 'set', 'all']:
-	# 	plot_replication_general('replication-%s' % type, 'replication-%s' % type, header_line=True)
-	# 	plot_replication_general('replication-%s' % type, 'replication-%s-queue' % type, 4, True)
-	# 	plot_replication_general('replication-%s' % type, 'replication-%s-servers' % type, 6, True)
-
-def plot_replication_general(fbase, title, which_params=2, header_line=False, is_time=True):
+def plot_replication_general(fbase, title, which_params=2, header_line=False, is_time=True, y_lim=-1):
 	print(title)
 	fname = 'logs_working/%s.log' % fbase
-
-	print(fname)
 
 	x = replication_factors_values
 	y = []
@@ -357,9 +467,11 @@ def plot_replication_general(fbase, title, which_params=2, header_line=False, is
 	plt.subplots_adjust(top=0.9, bottom=0.1)
 	plt.grid(True)
 	plt.gca().set_ylim(bottom=0)
+	if y_lim != -1:
+		plt.gca().set_ylim(top=y_lim)
 	plt.title(plot_title_name)
 	if is_time:
-		plt.ylabel('Time in the middleware [us]')
+		plt.ylabel('Time [us]')
 	else:
 		plt.ylabel('Throughput [ops/s]')
 	plt.xlabel('Servers')
@@ -372,7 +484,8 @@ writes_percentage_factors = [1, 5, 10]
 writes_experiment_title = '"Effects of writes" experiment'
 
 def plot_writes():
-	# plot_writes_general('writes', 'writes', is_time=False)
+	plot_writes_general('writes', 'writes', is_time=False)
+	plot_writes_general('writes-response_time', 'writes-response_time', is_time=True)
 	for type in ['get', 'set', 'all']:
 		plot_writes_general('writes-%s' % type, 'writes-%s' % type, header_line=True)
 		plot_writes_general('writes-%s' % type, 'writes-%s-queue' % type, 5, True)
@@ -422,7 +535,7 @@ def plot_writes_general(fbase, title, which_params=3, header_line=False, is_time
 		legend = ax.legend((rects[0][0], rects[1][0], rects[2][0]), ('1%', '5%', '10%'), title='Percentage of writes',
 				bbox_to_anchor=(1, 1), loc='upper left', ncol=1, fontsize='small')
 		plt.setp(legend.get_title(),fontsize='x-small')
-		plt.tight_layout(pad=8)
+		plt.tight_layout(pad=9)
 
 		plot_title_name = writes_experiment_title + ', ' + ('R = 1' if replication == 1 else 'R = all')
 		plot_file_name = 'plots/' + title + '-' + str(replication) + '-replication.png'
@@ -432,7 +545,7 @@ def plot_writes_general(fbase, title, which_params=3, header_line=False, is_time
 		plt.gca().set_ylim(bottom=0)
 		plt.title(plot_title_name)
 		if is_time:
-			plt.ylabel('Time in the middleware [us]')
+			plt.ylabel('Time [us]')
 		else:
 			plt.ylabel('Throughput [ops/s]')
 		plt.xlabel('Servers')

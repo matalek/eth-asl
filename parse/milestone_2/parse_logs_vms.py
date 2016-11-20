@@ -6,20 +6,24 @@ import statistics as st
 def is_to_move(filename):
 	# if (not filename.startswith('max_throughput')):
 	# 	return True
-	if (not filename.startswith('replication')):
+	if (not filename.startswith('max_throughput_')):
 		return False
-	# filename = filename.replace('max_throughput_', '')
-	# filename = filename.replace('.log', '')
-	# parts = filename.split('_')
-	if filename.find('[') != -1:
+	filename = filename.replace('max_throughput_', '')
+	filename = filename.replace('.log', '')
+	parts = filename.split('_')
+
+	if (int(parts[0]) <= 300) and (int(parts[1]) == 30):
 		return False
+
+	# if filename.find('.log') == -1:
+	# 	return False
 	return True
 	# if (int(parts[0]) >= 450) and (int(parts[0]) <= 600) and (int(parts[1]) >= 30):
 	# 	return True
 	# return False
 
 def move_logs(directory_name):
-	directory = './logs'
+	directory = './logs/detailed'
 	for filename in os.listdir(directory):
 		if (not os.path.isdir(os.path.join(directory, filename))) and (is_to_move(filename)):
 			os.rename(os.path.join(directory, filename), os.path.join('./logs/%s/' % directory_name, filename))
@@ -40,15 +44,27 @@ def write_to_named_file(fname, content):
 					f.write(',')
 			f.write('\n')
 
-def parse_max_throughput():
-	parse_throughput('max_throughput', ['Number of clients', 'Size of thread pool', 'TPS'])
+def parse_max_throughput(detailed):
+	if detailed:
+		directory = './logs/detailed'
+	else:
+		directory = './logs/overall'
+	parse_throughput('max_throughput', ['Number of clients', 'Size of thread pool', 'TPS'], directory)
 	parse_response_time('max_throughput', 'max_throughput-response_time',
-			['Number of clients', 'Size of thread pool', 'Response time', 'Standard deviation'])
+			['Number of clients', 'Size of thread pool', 'Response time', 'Standard deviation'], directory)
 
 def parse_replication():
-	parse_throughput('replication', ['Replication factor', 'Number of servers', 'TPS'])
-	middleware_headers = ['Replication factor', 'Number of servers', 'Middleware time', 'Middleware time std', 
-			'Queue time', 'Queue time std', 'Server time', 'Server time std']
+	params_header = ['Replication factor', 'Number of servers', 'Repetition']
+	parse_throughput('replication', params_header + ['TPS', 'Standard deviation'])
+	parse_response_time('replication', 'replication-response_time',
+			params_header + ['Response time', 'Standard deviation'])
+
+def parse_writes():
+	params_header = ['Writes percentage', 'Number of servers', 'Replication factor' 'Repetition']
+	parse_throughput('writes', params_header + ['TPS', 'Standard deviation'])
+	parse_response_time('writes', 'writes-response_time',
+			params_header + ['Response time', 'Standard deviation'])
+
 
 def get_params(fbase, filename):
 	data = filename
@@ -59,9 +75,8 @@ def get_params(fbase, filename):
 	data = data.split('_')
 	return data
 
-def parse_throughput(fbase, headers):
+def parse_throughput(fbase, headers, directory='./logs'):
 	res = []
-	directory = './logs'
 	for filename in os.listdir(directory):
 		if filename.startswith(fbase + '_'):
 			data = get_params(fbase, filename)
@@ -73,7 +88,7 @@ def parse_throughput(fbase, headers):
 	write_to_file(fbase, res)
 
 start_time = 60
-end_time = 120
+end_time = 240
 
 def parse_throughput_single(fname):
 	print(fname)
@@ -100,9 +115,8 @@ def parse_throughput_single(fname):
 		throughput = (throughput * end_time - till_stability_throughput * start_time) / (end_time - start_time)
 		return [str(throughput), str(st.pstdev(res))]
 
-def parse_response_time(fbase, result_name, headers):
+def parse_response_time(fbase, result_name, headers, directory='./logs'):
 	res = []
-	directory = './logs'
 	for filename in os.listdir(directory):
 		if filename.startswith(fbase + '_'):
 			data = get_params(fbase, filename)
@@ -129,9 +143,24 @@ def parse_response_time_single(fname):
 				elif lines[i].split()[1] == str(end_time):
 					response_time = float(lines[i].split()[8])
 					response_time_std = float(lines[i].split()[9])
-					break
+			if (line.find('Log2 Dist:') != -1) and (lines[i-6].find('Total') != -1):
+				i += 1
+				line = lines[i]
+				base = int(line.split()[0][:-1])
+				perc = []
+				while line.strip():
+					line = line.split()[1:]
+					for k in range(0, len(line)):
+						perc.append(str(2**base))
+						perc.append(line[k])
+						base += 1
+					i += 1
+					line = lines[i]
+
 			i += 1
 		response_time = (response_time * end_time - till_stability_average * start_time) / (end_time - start_time)
 		response_time_std = math.sqrt((math.pow(response_time_std, 2) * end_time 
 				- math.pow(till_stability_std, 2) * start_time) / (end_time - start_time))
-		return [str(response_time), str(response_time_std)]
+
+
+		return [str(response_time), str(response_time_std)] + perc

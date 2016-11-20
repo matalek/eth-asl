@@ -83,12 +83,14 @@ def parse_replication_middleware():
 	for i in range(1, repetitions + 1):
 		parse_middleware_times('replication', 'get', middleware_headers, i)
 		parse_middleware_times('replication', 'set', middleware_headers, i)
+		parse_middleware_times('replication', 'all', middleware_headers, i)
 		
 	combine_replication_repetitions()
 
 def combine_replication_repetitions():
 	combine_repetitions('replication-get')
 	combine_repetitions('replication-set')
+	combine_repetitions('replication-all')
 
 # --------- Effect of writes task -------------
 

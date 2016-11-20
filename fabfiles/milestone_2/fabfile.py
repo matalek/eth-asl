@@ -54,10 +54,10 @@ def run_middleware(threads, rep, memcached_string, log_output_file, std_output_f
 					-t %d -r %d -m %s' % (threads, rep, memcached_string),
 					std_output_file,  log_output_file)
 
-def combine_logs(experiment, response_time=False, servers=5, repetitions=False):
-	combine_throughput('logs_working/%s' % experiment, servers, repetitions)
+def combine_logs(experiment, response_time=False, servers=5, params_size=2, rep=False, directory='logs_working'):
+	combine_throughput('%s/%s' % (directory, experiment), servers, params_size, rep)
 	if response_time:
-		combine_response_time('logs_working/%s-response_time' % experiment, servers, repetitions)
+		combine_response_time('%s/%s-response_time' % (directory, experiment), servers, params_size, rep)
 
 def run_experiments_remote():
 	copy_fab()
@@ -111,21 +111,32 @@ def run_max_throughput_experiments():
 		for thread_pool in range(min_thread_pool, max_thread_pool + 1, thread_pool_step):
 			run_max_throughput_experiment(clients, thread_pool)
 
-def compute_max_throughput():
+def compute_max_throughput_all():
+	compute_max_throughput('True')
+	compute_max_throughput('False')
+
+def compute_max_throughput(detailed):
 	copy_parse()
 	for host in [2, 3, 4, 9, 10]:
 		with settings(host_string='asl%d' % host):
-			run('python3 -c "from parse_logs_vms import *; parse_max_throughput()"')
-	copy_max_throughput_logs()
+			run('python3 -c "from parse_logs_vms import *; parse_max_throughput(%s)"' % detailed)
+	copy_max_throughput_logs(detailed)
 
-def combine_max_throughput():
-	combine_logs('max_throughput', True)
+def combine_max_throughput_all():
+	combine_max_throughput('True')	
+	combine_max_throughput('False')	
 
-def copy_max_throughput_logs():
+def combine_max_throughput(detailed):
+	directory = get_directory(detailed)
+	combine_logs('max_throughput', True, directory='logs_working/%s' % directory)
+
+def copy_max_throughput_logs(detailed):
+	directory = get_directory(detailed)
+
 	hosts = [2, 3, 4, 9, 10]
 	for i in range(0, len(hosts)):
-		local('scp asl%s:logs/max_throughput.log ./logs_working/max_throughput_%d.log' % (hosts[i], i + 1))
-		local('scp asl%s:logs/max_throughput-response_time.log ./logs_working/max_throughput-response_time_%d.log' % (hosts[i], i + 1))
+		local('scp asl%s:logs/max_throughput.log ./logs_working/%s/max_throughput_%d.log' % (hosts[i], directory, i + 1))
+		local('scp asl%s:logs/max_throughput-response_time.log ./logs_working/%s/max_throughput-response_time_%d.log' % (hosts[i], directory, i + 1))
 
 def copy_max_throughput_compressed():
 	i = 1
@@ -167,7 +178,7 @@ def run_replication_experiment(servers, replication_factor, repetition): # repli
 	time.sleep(pause_2)
 
 def run_replication_experiments():
-	# copy_workloads()
+	copy_workloads()
 
 	min_servers = 3
 	max_servers = 7
@@ -197,14 +208,15 @@ def compute_replication_middleware():
 		run('python3 -c "from parse_logs_middleware import *; parse_replication_middleware()"')
 
 def combine_replication():
-	combine_logs('replication', servers=3, repetitions=True)
-	combine_vms_repetitions('replication')
+	combine_logs('replication', response_time=True, servers=3, params_size=3, rep=True)
+	combine_vms_repetitions('replication', params_size=2)
+	combine_vms_repetitions('replication-response_time', params_size=2)
 
 def copy_replication_logs():
 	hosts = [2, 3, 4]
 	for i in range(0, len(hosts)):
 		local('scp asl%s:logs/replication.log ./logs_working/replication_%d.log' % (hosts[i], i + 1))
-		# local('scp asl%s:logs/max_throughput-response_time.log ./logs_working/max_throughput-response_time_%d.log' % (hosts[i], i + 1))
+		local('scp asl%s:logs/replication-response_time.log ./logs_working/replication-response_time_%d.log' % (hosts[i], i + 1))
 
 def copy_replication_middleware_logs():
 	local('scp asl11:logs/replication-*.log ./logs_working/')
@@ -254,9 +266,9 @@ def run_writes_experiments():
 
 	repetitions = 3
 
-	for servers in range(min_servers, max_servers + 1, step_servers):
-		for percentage in percentages:
-			for replication in range(min_replication, max_replication + 1, 1):
+	for replication in range(min_replication, max_replication + 1, 1):
+		for servers in range(min_servers, max_servers + 1, step_servers):
+			for percentage in percentages:
 				for repetition in range(1, repetitions + 1):
 					print(str(replication) + ' ' + str(servers) + ' ' + str(replication) + ' ' + str(repetition));
 					run_writes_experiment(servers, percentage, replication, repetition)
@@ -267,8 +279,24 @@ def compute_writes_middleware():
 	with settings(host_string='asl11'):
 		run('python3 -c "from parse_logs_middleware import *; parse_writes_middleware()"')
 
+
+def copy_writes_logs():
+	hosts = [2, 3, 4]
+	for i in range(0, len(hosts)):
+		local('scp asl%s:logs/writes.log ./logs_working/writes_%d.log' % (hosts[i], i + 1))
+		local('scp asl%s:logs/writes-response_time.log ./logs_working/writes-response_time_%d.log' % (hosts[i], i + 1))
+
+def compute_writes():
+	copy_parse(3)
+	for host in [2, 3, 4]:
+		with settings(host_string='asl%d' % host):
+			run('python3 -c "from parse_logs_vms import *; parse_writes()"')
+	copy_writes_logs()
+
 def combine_writes():
-	combine_logs('writes')
+	combine_logs('writes', response_time=True, servers=3, params_size=4, rep=True)
+	combine_vms_repetitions('writes', params_size=3)
+	combine_vms_repetitions('writes-response_time', params_size=3)
 
 def copy_writes_middleware_logs():
 	local('scp asl11:logs/writes-*.log ./logs_working/')
@@ -277,8 +305,9 @@ def copy_writes_middleware_logs():
 
 def move_logs():
 	copy_parse(3)
-	directory_name = 'replication_old'
-	for host in [2, 3, 4]:
+	directory_name = 'detailed-weird'
+	# for host in [2, 3, 4]:
+	for host in [9, 10]:
 		with settings(host_string='asl%d' % host):
 			run('mkdir -p logs/%s' % directory_name)
 			run('python3 -c "from parse_logs_vms import *; move_logs(\'%s\')"' % directory_name)
