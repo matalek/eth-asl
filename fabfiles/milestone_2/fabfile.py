@@ -54,9 +54,13 @@ def run_middleware(threads, rep, memcached_string, log_output_file, std_output_f
 					-t %d -r %d -m %s' % (threads, rep, memcached_string),
 					std_output_file,  log_output_file)
 
-def combine_logs(experiment, response_time=False, servers=5, params_size=2, rep=False, directory='logs_working'):
+def combine_logs(experiment, response_time=False, servers=5, params_size=2, rep=False, directory='logs_working', types=False):
 	combine_throughput('%s/%s' % (directory, experiment), servers, params_size, rep)
 	if response_time:
+		if types:
+			for type in ['get', 'set']:
+				combine_response_time('%s/%s-response_time-%s' % (directory, experiment, type), servers, params_size, rep)
+
 		combine_response_time('%s/%s-response_time' % (directory, experiment), servers, params_size, rep)
 
 def run_experiments_remote():
@@ -208,15 +212,19 @@ def compute_replication_middleware():
 		run('python3 -c "from parse_logs_middleware import *; parse_replication_middleware()"')
 
 def combine_replication():
-	combine_logs('replication', response_time=True, servers=3, params_size=3, rep=True)
-	combine_vms_repetitions('replication', params_size=2)
+	combine_logs('replication', response_time=True, servers=3, params_size=3, rep=True, types=True)
+	combine_vms_repetitions('replication', params_size=2, is_time=False)
 	combine_vms_repetitions('replication-response_time', params_size=2)
+	for type in ['get', 'set']:
+		combine_vms_repetitions('replication-response_time-%s' % type, params_size=2)
 
 def copy_replication_logs():
 	hosts = [2, 3, 4]
 	for i in range(0, len(hosts)):
 		local('scp asl%s:logs/replication.log ./logs_working/replication_%d.log' % (hosts[i], i + 1))
 		local('scp asl%s:logs/replication-response_time.log ./logs_working/replication-response_time_%d.log' % (hosts[i], i + 1))
+		for type in ['get', 'set']:
+			local('scp asl%s:logs/replication-response_time-%s.log ./logs_working/replication-response_time-%s_%d.log' % (hosts[i], type, type, i + 1))
 
 def copy_replication_middleware_logs():
 	local('scp asl11:logs/replication-*.log ./logs_working/')
@@ -285,6 +293,8 @@ def copy_writes_logs():
 	for i in range(0, len(hosts)):
 		local('scp asl%s:logs/writes.log ./logs_working/writes_%d.log' % (hosts[i], i + 1))
 		local('scp asl%s:logs/writes-response_time.log ./logs_working/writes-response_time_%d.log' % (hosts[i], i + 1))
+		for type in ['get', 'set']:
+			local('scp asl%s:logs/writes-response_time-%s.log ./logs_working/writes-response_time-%s_%d.log' % (hosts[i], type, type, i + 1))
 
 def compute_writes():
 	copy_parse(3)
@@ -294,9 +304,11 @@ def compute_writes():
 	copy_writes_logs()
 
 def combine_writes():
-	combine_logs('writes', response_time=True, servers=3, params_size=4, rep=True)
-	combine_vms_repetitions('writes', params_size=3)
+	combine_logs('writes', response_time=True, servers=3, params_size=4, rep=True, types=True)
+	combine_vms_repetitions('writes', params_size=3, is_time=False)
 	combine_vms_repetitions('writes-response_time', params_size=3)
+	for type in ['get', 'set']:
+		combine_vms_repetitions('writes-response_time-%s' % type, params_size=3)
 
 def copy_writes_middleware_logs():
 	local('scp asl11:logs/writes-*.log ./logs_working/')

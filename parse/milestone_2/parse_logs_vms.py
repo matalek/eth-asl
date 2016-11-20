@@ -57,13 +57,19 @@ def parse_replication():
 	params_header = ['Replication factor', 'Number of servers', 'Repetition']
 	parse_throughput('replication', params_header + ['TPS', 'Standard deviation'])
 	parse_response_time('replication', 'replication-response_time',
-			params_header + ['Response time', 'Standard deviation'])
+				params_header + ['Response time', 'Standard deviation'])
+	for type in ['Get', 'Set']:
+		parse_response_time('replication', 'replication-response_time-%s' % type.lower(),
+				params_header + ['Response time', 'Standard deviation'], type=type)
 
 def parse_writes():
 	params_header = ['Writes percentage', 'Number of servers', 'Replication factor' 'Repetition']
 	parse_throughput('writes', params_header + ['TPS', 'Standard deviation'])
 	parse_response_time('writes', 'writes-response_time',
 			params_header + ['Response time', 'Standard deviation'])
+	for type in ['Get', 'Set']:
+		parse_response_time('writes', 'writes-response_time-%s' % type.lower(),
+				params_header + ['Response time', 'Standard deviation'], type=type)
 
 
 def get_params(fbase, filename):
@@ -88,7 +94,7 @@ def parse_throughput(fbase, headers, directory='./logs'):
 	write_to_file(fbase, res)
 
 start_time = 60
-end_time = 240
+end_time = 120
 
 def parse_throughput_single(fname):
 	print(fname)
@@ -115,18 +121,18 @@ def parse_throughput_single(fname):
 		throughput = (throughput * end_time - till_stability_throughput * start_time) / (end_time - start_time)
 		return [str(throughput), str(st.pstdev(res))]
 
-def parse_response_time(fbase, result_name, headers, directory='./logs'):
+def parse_response_time(fbase, result_name, headers, directory='./logs', type='Total'):
 	res = []
 	for filename in os.listdir(directory):
 		if filename.startswith(fbase + '_'):
 			data = get_params(fbase, filename)
-			res.append(data + parse_response_time_single(os.path.join(directory, filename)))
+			res.append(data + parse_response_time_single(os.path.join(directory, filename), type))
 		else:
 			continue
 	res = [headers] + res
 	write_to_file(result_name, res)
 
-def parse_response_time_single(fname):
+def parse_response_time_single(fname, type):
 	print(fname)
 	till_stability_average = 0
 	till_stability_std= 0
@@ -135,7 +141,7 @@ def parse_response_time_single(fname):
 		i = 0
 		while i < len(lines):
 			line = lines[i]
-			if (line.find('Total Statistics') != -1) and (line.find('Total Statistics (') == -1):
+			if (line.find('%s Statistics' % type) != -1) and (line.find('%s Statistics (' % type) == -1):
 				i += 3
 				if lines[i].split()[1] == str(start_time):
 					till_stability_average = float(lines[i].split()[8])
@@ -143,7 +149,7 @@ def parse_response_time_single(fname):
 				elif lines[i].split()[1] == str(end_time):
 					response_time = float(lines[i].split()[8])
 					response_time_std = float(lines[i].split()[9])
-			if (line.find('Log2 Dist:') != -1) and (lines[i-6].find('Total') != -1):
+			if (line.find('Log2 Dist:') != -1) and (lines[i-6].find(type) != -1):
 				i += 1
 				line = lines[i]
 				base = int(line.split()[0][:-1])
