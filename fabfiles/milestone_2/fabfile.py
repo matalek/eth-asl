@@ -54,14 +54,17 @@ def run_middleware(threads, rep, memcached_string, log_output_file, std_output_f
 					-t %d -r %d -m %s' % (threads, rep, memcached_string),
 					std_output_file,  log_output_file)
 
-def combine_logs(experiment, response_time=False, servers=5, params_size=2, rep=False, directory='logs_working', types=False):
-	combine_throughput('%s/%s' % (directory, experiment), servers, params_size, rep)
+def combine_logs(experiment, headers, response_time=False, servers=5, params_size=2, rep=False, directory='logs_working', types=False):
+	combine_throughput('%s/%s' % (directory, experiment), headers + ['TPS', 'Standard deviation'], servers, params_size, rep)
 	if response_time:
 		if types:
 			for type in ['get', 'set']:
-				combine_response_time('%s/%s-response_time-%s' % (directory, experiment, type), servers, params_size, rep)
+				combine_response_time('%s/%s-response_time-%s' % (directory, experiment, type), 
+						headers + ['Response time', 'Standard deviation', '25th percentile', '90th percentile'],
+						servers, params_size, rep)
 
-		combine_response_time('%s/%s-response_time' % (directory, experiment), servers, params_size, rep)
+		combine_response_time('%s/%s-response_time' % (directory, experiment),
+				headers + ['Response time', 'Standard deviation', '25th percentile', '90th percentile'], servers, params_size, rep)
 
 def run_experiments_remote():
 	copy_fab()
@@ -69,6 +72,48 @@ def run_experiments_remote():
 	with settings(host_string='asl11'):
 		runbg('fab run_writes_experiments',
 			'fab.log',  '/dev/null')
+
+def compress_logs_clients():
+	i = 1
+	for host in [2, 3, 4, 9, 10]:
+		# Add readmes
+		with settings(host_string='asl%d' % host):
+			for directory_name in ['detailed', 'overall']:
+				local('scp logs_working/README_max_throughput asl%d:logs/%s/README' % (host, directory_name))
+				with cd('logs'):
+					run('tar -zcvf %s.tar.gz %s' % (directory_name, directory_name))
+			if i <= 3:
+				for experiment in ['writes', 'replication']:
+					local('scp logs_working/README_%s asl%d:logs/README' % (experiment, host))
+					with cd('logs'):
+						run('tar -zcvf %s.tar.gz %s*.log README' % (experiment, experiment))
+		experiments = ['detailed', 'overall']
+		if i <= 3:
+			experiments += ['replication', 'writes'] 
+		for experiment in experiments:
+			local('scp asl%s:logs/%s.tar.gz logs/milestone2/%s_%d.tar.gz' % (host, experiment, experiment,i))
+		i += 1
+
+def compress_logs_global():
+	experiments = ['overall', 'detailed']
+	for e in experiments:
+		local('tar -zcvf logs/milestone2/%s_general.tar.gz -C logs_working/%s max_throughput.log max_throughput-response_time.log'
+				% (e, e))
+
+	experiments = ['replication', 'writes']
+	for e in experiments:
+		local('tar -zcvf logs/milestone2/%s_general.tar.gz -C logs_working %s.log %s-response_time.log' % (e, e, e))
+
+def compress_logs_middleware():
+	experiments = ['replication', 'writes']
+	with settings(host_string='asl11'):
+		for e in experiments:
+			local('scp logs_working/README_%s_middleware asl11:logs/README' % (e))
+			with cd('logs'):
+				run('tar -zcvf %s.tar.gz %s*.log' % (e, e))
+	for e in experiments:
+		local('scp asl11:logs/%s.tar.gz logs/milestone2/%s_middleware.tar.gz' % (e, e))
+	
 
 # --------- Max throughput task ------------- 
 
@@ -121,9 +166,12 @@ def compute_max_throughput_all():
 
 def compute_max_throughput(detailed):
 	copy_parse()
+	directory = get_directory(detailed)
 	for host in [2, 3, 4, 9, 10]:
 		with settings(host_string='asl%d' % host):
 			run('python3 -c "from parse_logs_vms import *; parse_max_throughput(%s)"' % detailed)
+			run('cp logs/max_throughput.log logs/%s/max_throughput.log' % directory)
+			run('cp logs/max_throughput-response_time.log logs/%s/max_throughput-response_time.log' % directory)
 	copy_max_throughput_logs(detailed)
 
 def combine_max_throughput_all():
@@ -132,7 +180,7 @@ def combine_max_throughput_all():
 
 def combine_max_throughput(detailed):
 	directory = get_directory(detailed)
-	combine_logs('max_throughput', True, directory='logs_working/%s' % directory)
+	combine_logs('max_throughput', ['Number of clients', 'Size of thread pool'], True, directory='logs_working/%s' % directory)
 
 def copy_max_throughput_logs(detailed):
 	directory = get_directory(detailed)
@@ -212,11 +260,11 @@ def compute_replication_middleware():
 		run('python3 -c "from parse_logs_middleware import *; parse_replication_middleware()"')
 
 def combine_replication():
-	combine_logs('replication', response_time=True, servers=3, params_size=3, rep=True, types=True)
-	combine_vms_repetitions('replication', params_size=2, is_time=False)
-	combine_vms_repetitions('replication-response_time', params_size=2)
+	combine_logs('replication', ['Replication factor', 'Number of servers', 'Repetition'], response_time=True, servers=3, params_size=3, rep=True, types=True)
+	combine_vms_repetitions('replication', ['Replication factor', 'Number of servers'], params_size=2, is_time=False)
+	combine_vms_repetitions('replication-response_time', ['Replication factor', 'Number of servers'], params_size=2)
 	for type in ['get', 'set']:
-		combine_vms_repetitions('replication-response_time-%s' % type, params_size=2)
+		combine_vms_repetitions('replication-response_time-%s' % type, ['Replication factor', 'Number of servers'], params_size=2)
 
 def copy_replication_logs():
 	hosts = [2, 3, 4]
@@ -304,11 +352,11 @@ def compute_writes():
 	copy_writes_logs()
 
 def combine_writes():
-	combine_logs('writes', response_time=True, servers=3, params_size=4, rep=True, types=True)
-	combine_vms_repetitions('writes', params_size=3, is_time=False)
-	combine_vms_repetitions('writes-response_time', params_size=3)
+	combine_logs('writes', ['Writes percentage', 'Number of servers', 'Replication factor', 'Repetition'], response_time=True, servers=3, params_size=4, rep=True, types=True)
+	combine_vms_repetitions('writes', ['Writes percentage', 'Number of servers', 'Replication factor'], params_size=3, is_time=False)
+	combine_vms_repetitions('writes-response_time', ['Writes percentage', 'Number of servers', 'Replication factor'], params_size=3)
 	for type in ['get', 'set']:
-		combine_vms_repetitions('writes-response_time-%s' % type, params_size=3)
+		combine_vms_repetitions('writes-response_time-%s' % type, ['Writes percentage', 'Number of servers', 'Replication factor'], params_size=3)
 
 def copy_writes_middleware_logs():
 	local('scp asl11:logs/writes-*.log ./logs_working/')

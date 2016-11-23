@@ -32,28 +32,6 @@ Milestone}
 
 \newpage
 
-\section*{Notes on writing the report \small{(remove this page for submission)}}
-
-Before starting to work on this milestone please remember:
-\begin{itemize}
-\item The prerequisite to a successful completion to this milestone is to have a stable system and also the necessary logging functionalities in place. 
-\item Depending on the workload and goal of the experiment, you might need to change the sampling rate from the default level. Make sure to indicate when doing so.
-\item The choice of experiment length and repetitions is up to you to decide, please make sure that you do not include warm-up and cool-down phases in the measurements. There are many experiments to run in this milestone, try to make a tradeoff.  
-\item We recommend that you have scripts in place to deploy and run experiments.
-\item All experiments have to be executed on the Microsoft Azure cloud.
-\item When plotting graphs include errors or measures of accuracy whenever possible. 
-\item Keep the report compact and concise! The total length should not exceed 20 pages. Log listings are not counted in this length, but all text, figures and tables are. If you have many logs, compress them by experiment and reference the archive instead of the independent files.
-\end{itemize}
-
-In this milestone we expect to see the different experiments you ran to exercise the system, and with each experiment we expect a clear description of the system configuration used, the hypothesis on behavior and the explanation of the behavior observed (in terms of the different design decisions taken beforehand) -- \emph{missing either of these for an experiment might make you lose all points for that given experiment!} 
-
-Keep in mind that for a good explanation of the results of an experiment you might have to use one or more methods of data analysis presented in the lecture and in the book. You might have to combine measurements taken in the middleware with the ones at the clients to be able to provide a full picture.
-
-Please feel free to structure the three sections of this report as it makes most sense for your experiments and explanations, but please respect the goal of each section. Also, similarly to the first milestone, include tables and descriptions about your experimental setup before each set of experiments.
-
-
-\pagebreak
-
 \section{Maximum Throughput}
 \label{sec:max-throughput}
 
@@ -80,6 +58,8 @@ To avoid memcached misses I have increased the memory of each memcached server t
 In order to enable distinction between between set and get requests in the middleware logs, I have added to my implementation writing the type of request for every log entry. What is more, with higher number of clients, my middleware was sometimes not forwarding received requests and responses correctly. This was due to not checking for emptiness of the buffer after sending the first part of the message - sending should be continued till the buffer is empty. This bug was fixed in the source code and corrected code was used for running the experiments for this milestone.
 
 \subsection{General plots description}
+\label{sec:max-throughput-plots}
+
 For every throughput plot I have indicated also standard deviation, which is based on $3\cdot60$ collected measurements. In order to make standard deviation visible for every line, I have shifted standard deviation right for each number of thread.
 
 Every response time also includes lines for 25th and 90th percentile. In order to make these lines more distinguishable, for every number of threads I have shifted the line up. I have to stress here, that these lines provide only a very rough approximation. This is the result of the following factors:
@@ -107,10 +87,13 @@ The purpose of this experiment was to gain a general understanding of the behavi
 \hline Warm-up phase & 1 min \\
 \hline Cool-down phase & 1 min \\
 
-\hline Log files & overall\_1, overall\_2, overall\_3, overall\_4, overall\_5, overall \\
+\hline Log files & \parbox[t]{8cm}{overall\_1, overall\_2, overall\_3, overall\_4, overall\_5, \\ overall\_general} \\[3.4ex]
 \hline 
 \end{tabular} }
 \medskip
+
+I have combined the overall results from 3 partial results (one minute of the experiment). The variation between repetitions for average was quite small - values differed from average: for throughput at most 5.4\%, for response time - at most 2.3\%. However the variation for standard deviation was bigger - they differed from average standard deviation: for throughput - at most 34.5\%, for response time - 11.6\%. The bigger value here for throughput stems from the fact, that we are counting standard deviation of throughput for 60 values, and for the response time - from every request (it's done by memaslap). Therefore, standard deviation for response time more precisely corresponds to reality and therefore it varies less than this for throughput. All of these shows us that variation of data was huge, even between the experiments.
+
 
 \begin{figure}
 \centering
@@ -136,7 +119,7 @@ The values that we got here correspond nicely to results predicted by the intera
 \medskip
 
 \begin{tabular}{|c|c|c|c|}
-\hline \bf{Clients} \# & \bf{Throughput [ops/s]} & \bf{Response time [us] (measured)} & \parbox[t]{4cm}{\bf{Response time [us] \\(interactive law)}} \\[3ex]
+\hline \bf{Clients} \# & \bf{Throughput [ops/s]} & \parbox[t]{4cm}{\bf{Response time [us]\\(measured)}} & \parbox[t]{4cm}{\bf{Response time [us] \\(interactive law)}} \\[3ex]
 \hline 500 & 13660 & 36790 & 36603 \\
 \hline 250 & 13171 & 19099 & 18981 \\
 \hline
@@ -145,8 +128,7 @@ The values that we got here correspond nicely to results predicted by the intera
 
 It must also be pointed out here that number of threads does not make such a big difference as one could expect. We can clearly see in the plot that the middleware having 10 threads in each of the thread pool is performing noticeably worse then the middleware having more threads. We can still see that below 300 clients the middleware with the thread pool of size 20 is performing less effective than with other configurations. However, for bigger number of clients and size of the thread pool, difference in performance is not really significant. Therefore, as the optimal number of threads I have chosen 30 threads, since lower number of threads results in noticeably lower performance and higher number of threads does not make a significant difference. When we also take a look at the percentiles for the response time, we can see that 90th percentile for 10 threads is achieved for lower number of clients than for the rest of threads values. Also 25th percentile for 20 threads is achieved for the lower number of clients. This indicates that with these 2 values of threads in the thread pool our middleware performs worse than with higher number of threads.
 
-The reason why this is the case is probably 
-%the bottleneck for the middleware is receiving incoming requests from the clients, not forwarding them to servers. This will be thoroughly analyzed in the subsection \ref{sec:time-breakdown}. What is more, the reason for not big effect of the number of threads might be 
+There are two reasons why this is the case. Firstly, for more threads the bottleneck for the middleware shifts to the process of receiving incoming requests from the clients.  Secondly, this is caused by %This will be thoroughly analyzed in the subsection \ref{sec:time-breakdown}. What is more, the reason for not big effect of the number of threads might be 
 the overhead from operating systems. Having more threads costs some system resources and since the virtual machine has only 8 cores, the threads might not be in reality performing task in parallel, but rather one after another. What is more, most of the time will be spend in the servers, not in the queue, which will be analyzed thoroughly in the subsection \ref{sec:time-breakdown}.
 
 \subsection{Detailed experiment}
@@ -166,10 +148,12 @@ The purpose of this experiment was to find out the more precise number of client
 \hline Runtime x repetitions & 5 min x 1 \\ 
 \hline Warm-up phase & 2 min \\
 \hline Cool-down phase & 2 min \\
-\hline Log files & TODO \\
+\hline Log files & \parbox[t]{9cm}{detailed\_1, detailed\_2, detailed\_3, detailed\_4, detailed\_5, \\ detailed\_general, max\_throughput\_detailed} \\[3.4ex]
 \hline 
 \end{tabular} }
 \medskip
+
+I have combined the overall results from 3 partial results (one minute of the experiment). The variation between repetitions for average was quite small - values differed from average: for throughput at most 2.6\%, for response time - at most 1.4\%. However the variation for standard deviation was bigger - they differed from average standard deviation: for throughput - at most 17.6\%, for response time - 5.5\%. Again, for throughput we get here higher value. All these values, however, are lower than corresponding values from the overall experiment, because we have less measurements in this experiments.
 
 \begin{figure}
 \centering
@@ -203,7 +187,7 @@ Results of this experiments are visible in the figure \ref{fig:max-throughput-de
 
 Although for these 4 configurations throughput is increasing as we increase number of clients, for the optimal number of clients I have chosen 210 clients. This is because till that point throughput increases significantly, after that it's still increasing, but it's connected with much more increase in the response time. I have chosen 210 clients over 160 clients, since we can see from the plot that around 160 clients the throughput still have growing tendencies, while after 210 clients it's becoming more flat. What is more, 210 and 160 clients configurations have the same 25th and 90th percentile of the response time, so it's reasonable to choose one of them that has higher throughput.
 
-To sum up, the maximal effective throughput is achieved for 210 clients and size of the thread pool equals 30. Therefore, I will use this parameters in later experiments.  
+To sum up, the maximal effective throughput is achieved for 210 clients and size of the thread pool equals 30. It is equal to around 13800 operations per second and corresponds to average response time equals to around 15250 us. Therefore, I will use 210 clients and 30 threads in the thread pool in later experiments.  
 
 \subsection{Verification of the hypothesis}
 
@@ -215,13 +199,15 @@ As I have suspected, the number of clients for the maximal effective throughput 
 Since the purpose of this experiment was to analyze middleware under read-only workload, in this section I will provide breakdown of time spent in the middleware for get operations.
 \medskip
 
-\begin{tabular}{|c|c|c|c|}
-\hline \bf{Time spent ...} & \bf{Average [us]} & \bf{Standard deviation [us])} & \parbox[t]{3cm}{\bf{Coefficient of \\variation}} \\[3ex]
-\hline in the middleware & 6723 & 12213 & 1.76 \\
-\hline in the queue & 2557 & 7192 & 2.69\\
-\hline in the server & 4119 & 9329 & 2.22\\
-\hline in the queue and the server & 6676 & - & -\\
-\hline being actively processed & 47 & - & -\\
+In the whole report, whenever I mention queue time, I mean time spent by the requests in the queue, which is a component used in the middleware and described in the architecture description in the report for milestone 1. When I use servers time, I mean time for a given requests from the moment the first forwarded request is sent to the servers till the last response is received. Therefore, this times includes sending the forwarded requests, time spent by the requests in the network and in the server, time spent by the responses in the middleware waiting to be process, as well as processing these responses. 
+
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline \bf{Time spent ...} & \bf{Avg. [us]} & \parbox[t]{2.0cm}{\bf{Std.\\dev. [us]}} & \parbox[t]{2.5cm}{\bf{Coefficient of \\variation}} & \parbox[t]{1.7cm}{\bf{25th \\per. [us]}} & \parbox[t]{1.7cm}{\bf{90th \\per. [us]}} \\[3ex]
+\hline in the middleware & 6723 & 12213 & 1.76 & 801 & 12997 \\
+\hline in the queue & 2557 & 7192 & 2.69 & 23 & 7952\\
+\hline in the server & 4119 & 9329 & 2.22 & 550 & 9689\\
+\hline \parbox[t]{3cm}{in the queue\\and the server} & 6676 & - & - & -&-\\[3ex]
+\hline \parbox[t]{3cm}{being actively\\processed} & 47 & - & - & -&-\\
 \hline
 \end{tabular}
 \medskip
@@ -233,9 +219,15 @@ Since the purpose of this experiment was to analyze middleware under read-only w
 \label{fig:max-throughput-breakdown}
 \end{figure}
 
-As we can see from the above table and from the figure \ref{fig:max-throughput-breakdown}, most of the time (around 61\%) is spent by the requests in servers (which means - being transferred via network to and from server and being processed by the server). Time spent in the queue is less significant (around 38\%). This is because we have chosen optimal number of threads to achieve the best performance. With 30 threads in the single thread pool (for each server), so in total with 150 threads processing get requests, we can process requests from 210 clients effectively. However, we must remember that the processor on the virtual machine on which the middleware server was running, has only 8 cores. Therefore, time waiting in the queue is not negligible and influences the total time spent in the middleware.
+As we can see from the above table and from the figure \ref{fig:max-throughput-breakdown}, most of the time (around 61\%) is spent by the requests in servers (which means - being transferred via network to and from server and being processed by the server). Time spent in the queue is less significant (around 38\%). This is because we have chosen optimal number of threads to achieve the best performance. With 30 threads in the single thread pool (for each server), so in total with 150 threads processing get requests, we can process requests from 210 clients effectively. However, we must remember that the processor on the virtual machine on which the middleware server was running, has only 8 cores. Therefore, time waiting in the queue is not negligible and influences the total time spent in the middleware. But we can notice that 25th percentile for the queue is really low, which means that some requests spend almost no time in the queue.
 
-It must be pointed out that the coefficient of variation for time spent in the queue is high, also comparing to time spent in the servers and total time in the middleware. This is because time spent in the queue depends also on other factors. If we have some disturbance in the network, threads processing get requests will have to wait longer for response from the server and therefore will not be able to take next requests of out the queue (getter threads are synchronous). What is more, if there is a disturbance in the network from client to the middleware server, workers might be idle, whereas when later huge number of requests come, they will not be able to process them effectively. This means that time spent in the queue depends significantly on other factors, which explains why it can vary noticeably.  
+It must be pointed out that the coefficient of variation for time spent in the queue is high, also comparing to time spent in the servers and total time in the middleware. This is because time spent in the queue depends also on other factors. If we have some disturbance in the network, threads processing get requests will have to wait longer for response from the server and therefore will not be able to take next requests of out the queue (getter threads are synchronous). What is more, if there is a disturbance in the network from client to the middleware server, workers might be idle, whereas when later huge number of requests come, they will not be able to process them effectively. This means that time spent in the queue depends significantly on other factors, which explains why it can vary noticeably.
+
+\subsection{Explanation why the system reaches its maximum throughput at these points}
+\label{sec:max-throughput-explanation}
+
+As mentioned above, the reason why we cannot get much higher throughput when increasing the number of clients and threads is because the bottleneck of the system shifts to handling incoming requests. We could see from the breakdown analysis that time spent in the queue was relatively low compared to the time spent in the middleware. What is more, we know that memcached servers were not saturated - they had around 42 clients each, which, as we know from the milestone 1, is far from the saturation point of these servers (they became saturated for 96 clients). Furthermore, increasing number of threads did not increase the performance. These all factors indicate that it indeed is handling incoming threads that becomes the bottleneck of the system as we increase the number of clients and with reasonable number of threads in the thread pool. This can be also well explained in terms of the design of my middleware. There is only one thread handling incoming connections, parsing them, hashing the key and placing requests in the queue. Although his thread does not have to wait for responses from server, it still must process all the requests. Having many threads in the thread pool can improve performance of processing requests already in the middleware, but it may only affect thread accepting incoming requests. With many threads (for optimal configuration we have them in total 156), one thread handling incoming requests might not get as much resources as it requires. We have not assigned one core to this thread that can only execute this thread, but rather operating systems has to choose when this thread is performed. Therefore, this thread becomes the bottleneck of the system. 
+
 
 \clearpage
 
@@ -278,10 +270,15 @@ The experiment was conducted using the following provided scheme:
 \hline Runtime x repetitions & 3 min x 3 \\
 \hline Warm-up phase & 1 min \\
 \hline Cool-down phase & 1 min \\
-\hline Log files & TODO \\
+\hline Log files & \parbox[t]{10cm}{replication\_1, replication\_2, replication\_3, \\replication\_general, replication\_middleware} \\[3.4ex]
 \hline 
 \end{tabular} }
 \medskip
+
+I have combined the results from 3 repetitions. The variation between repetitions for average was small - values differed from average at most 2.1\%. However the variation for standard deviation was bigger - they differed from average standard deviation at most 13.1\%  This shows that variation of data was huge, even between the experiments.
+
+\subsection{General plots description}
+For throughput plots presented in this section and section \ref{sec:writes} I have indicated also standard deviation. For response times and time spent in the middleware (both in this and the next section) I have indicated standard deviation, as well as 25th and 90th percentile. Standard deviation is represented as a classic error bar, whereas 25th percentile is marked with white cross and 90th percentile is marked with black cross. It is worth mentioning here that although percentiles calculated on the memaslap logs provide very rough approximation (see \ref{sec:max-throughput-plots}), percentiles calculated for middleware times are more precise. We have collected more measurements and can calculate this percentiles ourselves. 
 
 \subsection{Overall performance}
 \label{sec:replication-overall}
@@ -297,14 +294,12 @@ The experiment was conducted using the following provided scheme:
 \begin{subfigure}{.5\textwidth}
 	\centering
 	\includegraphics[width=\linewidth]{plots/replication-response_time}
-	\caption{Time in the servers}
+	\caption{Response time}
 	\label{fig:replication-reponse-time}
 \end{subfigure}
 \caption{Overall performance for the replication experiment}
 \label{fig:replication-overall}
 \end{figure}
-
-% TODO what does performance mean - throughput / time spent, interactive law
 
 As we can see from figure \ref{fig:replication-overall}, performance of the system (measured as the throughput and response time) for 5 and 7 servers is decreasing as we increase the replication factor. For 3 servers we can also notice that as we increase replication factor from half to all, the performance decreases, but when we increase the replication factor from none to half we can notice a slight increase of the performance. However, the difference between these values is within statistical error.
 
@@ -324,16 +319,24 @@ What is more, the ideal scalability would also mean that increasing the replicat
 
 \begin{figure}
 \centering
-	\includegraphics[width=0.7\linewidth]{plots/replication-get}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width=\linewidth]{plots/replication-response_time-get}
+	\caption{Response time}
+	\label{fig:replication-response-time-get}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width=\linewidth]{plots/replication-get}
+	\caption{Total time in the middleware}
+	\label{fig:replication-get-middleware}
+\end{subfigure}
 
-\caption{Total time spent in the middleware for get requests}
+\caption{Measured times for get requests}
 \label{fig:replication-get}
 \end{figure}
 
 We can see from the figure \ref{fig:replication-get} that get requests are not much affected by changing the replication factor. Differences between different replication factors are negligible, taking into the account how big is the standard deviation. This is because changing replication factor does not change the work that get workers have to do. There might be some additional load on the middleware connected with increased replication factor and also probably higher network traffic (more set requests), but as the plot shows, it does not matter that much for get requests. From figures \ref{fig:replication-get-queue} and \ref{fig:replication-get-servers} we also cannot see any significant difference in the time spent by the request for different replication factors.
-
-% TODO: standard deviation & percentiles discussion
-
 
 \begin{figure}
 \centering
@@ -353,35 +356,50 @@ We can see from the figure \ref{fig:replication-get} that get requests are not m
 \label{fig:replication-get-breakdown}
 \end{figure}
 
-As we increase the number of servers from 3 to 5, we can see from the figure \ref{fig:replication-get} that the time spent in the middleware decreases. This can be explained by the decrease of time spent in the queue. 
+As we increase the number of servers from 3 to 5, we can see from the figure \ref{fig:replication-get} that the time spent in the middleware decreases. This can be explained by the decrease of time spent in the queue. However, we don't see any significant difference when it comes to the response time measured by memaslap clients. This is because with enough threads to process get requests, it is handling incoming requests that becomes the bottleneck of the system. The time spent by the request waiting for being handled by the accepting threads is not measured and we can only reason about it by comparing response times from memaslap clients and time spent in the middleware. This result is consistent with \ref{sec:max-throughput-explanation}, where we concluded that we cannot increase the performance because of the handling incoming requests being the bottleneck. What is more, with higher number of threads, one thread that processes incoming requests gets more processor resources and its performance can also decrease. So although we can notice time spent in the middleware descreasing, overall performance does not change much. 
 
-Looking at the figure \ref{fig:replication-get-queue} we can see a significant difference in the time spent in the queue as we increase number of servers from 3 to 5. As we increase the number of servers from 3 to 5 we can see a decrease in time spent in the queue by around 57\%. This is because for 3 threads we do not have enough threads per request in the queue to allow to process threads from the queue efficiently. For 3 servers we have 70 requests and 30 threads per queue, we have $2\frac{1}{3}$ requests per thread. For 5 servers: 45 requests and 30 threads, which corresponds to $1\frac{1}{2}$ requests per thread. This means that elements can be taken out of the quickly for 5 servers, because each server has lower number of requests it has to process. However, when we increase number of servers from 5 to 7 we do not see a significant difference in this value. This means that decreasing number of requests per one queue would not further affect the time spent in the queue. This might be because starting from 1.5 requests per thread ratio the bottleneck of the system shifts to some other component, most probably to the thread accepting incoming requests.
+Looking at the figure \ref{fig:replication-get-queue} we can see a significant difference in the time spent in the queue as we increase number of servers from 3 to 5. As we increase the number of servers from 3 to 5 we can see a decrease in time spent in the queue by around 57\%. This is because for 3 threads we do not have enough threads per request in the queue to allow to process threads from the queue efficiently. For 3 servers we have 70 requests and 30 threads per queue, we have $2\frac{1}{3}$ requests per thread. For 5 servers: 45 requests and 30 threads, which corresponds to $1\frac{1}{2}$ requests per thread. This means that elements can be taken out of the quickly for 5 servers, because each server has lower number of requests it has to process. However, when we increase number of servers from 5 to 7 we do not see a significant difference in this value. This means that decreasing number of requests per one queue would not further affect the time spent in the queue. This might be because having even better (smaller) requests per thread ratio, the overhead of operating systems with more threads will increase, therefore preventing the middleware to have better inside performance.
 
-It is worth noticing here that his result is consistent with my results of experiments described in the section \ref{sec:max-throughput}. Increasing number of servers here decreases the ratio of requests per thread (for a given queue), while increasing number of threads (with constant number of requests) also decreased this ratio. In the section \ref{sec:max-throughput} we have concluded that number of threads in the thread pool equal to 30 is optimal. We used the same number of threads in this experiment. Therefore, increasing number of servers from 3 to 5 should correspond to increasing number of threads to 30 in the maximal throughput experiment, while increasing number of servers from 5 to 7 corresponds to increasing number of threads from 30 upward, which did not yield a noticeable difference.
+%It is worth noticing here that his result is consistent with my results of experiments described in the section \ref{sec:max-throughput}. Increasing number of servers here decreases the ratio of requests per thread (for a given queue), while increasing number of threads (with constant number of requests) also decreased this ratio. In the section \ref{sec:max-throughput} we have concluded that number of threads in the thread pool equal to 30 is optimal. We used the same number of threads in this experiment. Therefore, increasing number of servers from 3 to 5 should correspond to increasing number of threads to 30 in the maximal throughput experiment, while increasing number of servers from 5 to 7 corresponds to increasing number of threads from 30 upward, which did not yield a noticeable difference.
 
-When we look at the figure \ref{fig:replication-get-servers} we can see that increasing number of servers increases the time spent in the servers. This is because of more overhead from the side of the middleware - it takes longer to send and receive the message, as well as higher network traffic.
-% TODO: really? do I measure time correctly?
-% TODO: don't know!!!
+When we look at the figure \ref{fig:replication-get-servers} we can see that increasing number of servers increases the time spent in the servers. This is because of more overhead from the side of the middleware - getter threads are not longer that effective, because of the operating system overhead (e.g. overhead of changing context) connected with more threads. It takes longer to send and receive the message with more servers (which is counted as server time). What is more, with many threads and only 8 cores, for some of the responses coming back from the server it might be not be able to process them immediately (processors cores will have some other threads running), which will cause increase in the server time. There is also one more factor that causes this. Mainly, when we look at the percentiles in the figure \ref{fig:replication-get-servers}, they are very similar. This, alongside with increase of the average, means that with more servers we have more requests that are processed way longer than the rest. This is basically connected with the network instability, which increases as we are using more servers. 
+
+All the data presented in this section comes with high standard deviation. From figure \ref{fig:replication-get} we can see, however, that although response time and time in the middleware do not change significantly as we increase the replication factor, the increase in the standard deviation is more significant. What is more, as we go from 3 to 5 servers, we can notice decrease in the 90th percentile for the response time and standard deviation (for replication factor: none and half). This is connected with decrease in the time spent in the middleware and response times depending mostly on one component (accepting requests), which makes data less varied.
 
 \subsection{Set requests}
 \label{sec:replication-set}
+
 \begin{figure}
 \centering
-	\includegraphics[width=0.7\linewidth]{plots/replication-set}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width=\linewidth]{plots/replication-response_time-set}
+	\caption{Response time}
+	\label{fig:replication-response-time-set}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width=\linewidth]{plots/replication-set}
+	\caption{Total time in the middleware}
+	\label{fig:replication-set-middleware}
+\end{subfigure}
 
-\caption{Total time spent in the middleware for set requests}
+\caption{Measured times for set requests}
 \label{fig:replication-set}
 \end{figure}
 
-As we can see from the figure \ref{fig:replication-set}, increasing the replication factor increases noticeably the time spend by the set requests in the middleware. Setter worker with more servers to replicate to must collect responses from more servers and therefore is more prone to network latencies. More connections are established and if the one response takes longer than usual, it prolongs the total time of the request spent in the middleware.
+Looking at the figure \ref{fig:replication-set} we can see, that handling incoming requests is no longer the bottleneck of the system for 5 and 7 servers, because increase of the time spent in the middleware results in the corresponding increase in the response time. From this figure we can also see that increasing the replication factor increases noticeably the time spend by the set requests in the middleware and response times for these requets. Setter worker with more servers to replicate to must collect responses from more servers and therefore is more prone to network latencies. More connections are established and if the one response takes longer than usual, it prolongs the total time of the request spent in the middleware.
 
-From the figure \ref{fig:replication-set-servers} we see that it is indeed time spend in the servers that influences the response time significantly. Changing of time in the queue is not relevant here (see figure \ref{fig:replication-set-queue}) - it is similar as we differ the replication factor. This can be explained in a following way: although we have only one setter thread, it takes the set request out of the queue quickly, because sending operation is asynchronous. This means, that sending operation itself, as well as collecting responses (using queue-like data structure used in my system and described in the report for milestone 1) is not really time-consuming. With more requests to send we do not notice worse performance of setter worker, since time spent in the queue does not differ significantly as we change the replication factor. We can therefore say that with higher replication factor setter worker itself performs similarly, but since we have more network requests to send and responses to receive we get worse performance, since we must wait for {\bf all} the responses and therefore we are more prone to network latencies.
+From the figure \ref{fig:replication-set-servers} we see that it is indeed time spend in the servers that influences the response time significantly. Changing of time in the queue is not relevant here (see figure \ref{fig:replication-set-queue}) - it is similar as we differ the replication factor. 
+This can be explained by the way setter workers are implemented in my system (see implementation\footnote{\url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/src/pl/matal/SetterWorker.java}}). When setter worker executes its active waiting loop, it checks whether there are some responses waiting from the server and if yes it handles one of them. After that it checks whether there are any requests from the queue and it yes it handles one of them. This means that every run, if there is a request in the queue, it will be processed. In consequence, increasing replication factor does not affect time spent in the queue significantly - although we have more requests to send, the requests arriving to the queue (which number does not change) can be taken from the queue efficiently.
+%although we have only one setter thread, it takes the set request out of the queue quickly, because sending operation is asynchronous. This means, that sending operation itself, as well as collecting responses (using queue-like data structure used in my system and described in the report for milestone 1) is not really time-consuming. With more requests to send we do not notice worse performance of setter worker, since time spent in the queue does not differ significantly as we change the replication factor. We can therefore say that 
+With higher replication factor 
+%setter worker itself performs similarly, but since 
+we, however, have more network requests to send and responses to receive. Therefore we get more time spent in the servers, since we must wait for {\bf all} the responses and therefore we are more prone to network latencies - delay for one response would lead to increasing overall time spent on this operations. 
 
 Figure \ref{fig:replication-set} shows us also that the time spent by set requests in the middleware increases as we increase the number of servers (for replication factor half and all) and varies for replication factor none. This can be explained by both: time spent in the queue and time spent in the servers increasing (for replication factor half and all). With more servers we get more operating system overhead (connected with more threads) and we don't actually have enough cores to run all the threads in parallel at the same time. 
 
-%TODO: as above - why servers time increases?
-
-% TODO: standard deviation & percentile discussion
+Again, all the data presented in this section comes with high standard deviation. Standard deviation from the response time seems to be more or less proportional to the value itself (see \ref{fig:replication-response-time-set}), but it varies significantly when we look at the detailed times measured by the middleware. This might be because these times depend one on another (as analyzed in the section {sec:time-breakdown}) and therefore are prone to more variance. Percentiles presented in the plots seem to be consistent with the average value.
 
 \begin{figure}
 \centering
@@ -408,6 +426,22 @@ Figure \ref{fig:replication-set} shows us also that the time spent by set reques
 \centering
 \begin{subfigure}{.5\textwidth}
 	\centering
+	\includegraphics[width=\linewidth]{plots/replication-response_time-get-scaled}
+	\caption{Get requests}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width=\linewidth]{plots/replication-response_time-set-scaled}
+	\caption{Set requests}
+\end{subfigure}
+\caption{Response times}
+\label{fig:replication-response-time-set-get}
+\end{figure}
+
+\begin{figure}
+\centering
+\begin{subfigure}{.5\textwidth}
+	\centering
 	\includegraphics[width=\linewidth]{plots/replication-get-scaled}
 	\caption{Get requests}
 \end{subfigure}%
@@ -420,9 +454,11 @@ Figure \ref{fig:replication-set} shows us also that the time spent by set reques
 \label{fig:replication-set-get}
 \end{figure}
 
-% TODO: add time from memaslap
+Looking at the figures from previous sections as well as the figure
+%s \ref{fig:replication-set-get} and 
+\ref{fig:replication-response-time-set-get} (plots with the same scale to enable comparison), we can say that usually set requests have higher response time than get requests, especially when we increase the replication factor. This is understandable, since replication affects set requests. However, with no replication and 3 servers we get lower times for set requests. This allows us to say that with no replication and low number of servers synchronous and asynchronous ways of forwarding requests are comparable when it comes to the performance. But when we increase number of servers from 3, still with no replication, we notice decrease in performance only for set requests. This is because for set requests the bottleneck is the processing requests already in the middleware, which slows for more servers and therefore increases the response time. 
 
-Looking at the figures from previous sections as well as figure \ref{fig:replication-set-get} (plots with the same scale to enable comparison), we can say that set requests spend more time in the middleware, especially when we increase the replication factor (time spent in the middleware increasing over twice). But also with no replication we get lower times than for set requests. This is because we chose number of the resources to be optimal for get requests (during first experiment), but have not focused on optimizing time spent by set requests. What is more, design of the middleware does not allow us to tune the performance when it comes to set requests - we can only change resources for processing get requests. This allows us to say that more scalable method of processing requests (at least for these with no replication) is having many threads synchronously waiting for the response. We can tune here this number of threads and to increase the performance also increase the number of cores available. Such tuning and scaling cannot be done, however, for asynchronous processing the requests with one thread (we could though increase number of processing threads, but that was not the point of this method and we do not have enough data to predict behavior of the middleware with this enhancement).
+Looking now at the figure \ref{fig:replication-set-get} we can see, that more scalable method of processing requests (at least for these with no replication) is having many threads synchronously waiting for the response. This is because we chose number of the resources to be optimal for get requests (during first experiment), but have not focused on optimizing time spent by set requests. What is more, design of the middleware does not allow us to tune the performance when it comes to set requests - we can only change resources for processing get requests.  We can tune here this number of threads and to increase the performance also increase the number of cores available. Such tuning and scaling cannot be done, however, for asynchronous processing the requests with one thread (we could though increase number of processing threads, but that was not the point of this method and we do not have enough data to predict behavior of the middleware with this enhancement). This scalability is not, however, visible for clients, because of the bottleneck shifting to accepting incoming requests, as described in previous sections.
 
 Changing of the replication factor seems not to have a significant influence on times connected with get requests (overall time in the middleware, as well as in queue and in servers time). For set requests, however, more time is spent in the servers as we increase the replication factor, which results to higher overall time in the middleware (while time spent in the queue does not change significantly).
 
@@ -463,10 +499,12 @@ Increasing number of set requests should decrease the performance of the middlew
 \hline Runtime x repetitions & 3 min x 3 \\
 \hline Warm-up phase & 1 min \\
 \hline Cool-down phase & 1 min \\
-\hline Log files & TODO \\
+\hline Log files & writes\_1, writes\_2, writes\_3, writes\_general, writes\_middleware \\
 \hline 
 \end{tabular} }
 \medskip
+
+I have combined the results from 3 repetitions. The variation between repetitions for average was small - values differed from average at most 3,3\%. However the variation for standard deviation was bigger - they differed from average standard deviation at most 17.2\%  This shows that variation of data was huge, even between the experiments.
 
 \subsection{Overall performance}
 
@@ -481,7 +519,7 @@ Increasing number of set requests should decrease the performance of the middlew
 \begin{subfigure}{.5\textwidth}
 	\centering
 	\includegraphics[width=\linewidth]{plots/writes-response_time-1-replication}
-	\caption{Time in the servers}
+	\caption{Response time}
 	\label{fig:writes-reponse-time-1}
 \end{subfigure}
 \caption{Overall performance for the writes experiment with R=1}
@@ -499,7 +537,7 @@ Increasing number of set requests should decrease the performance of the middlew
 \begin{subfigure}{.5\textwidth}
 	\centering
 	\includegraphics[width=\linewidth]{plots/writes-response_time-2-replication}
-	\caption{Time in the servers}
+	\caption{Response time}
 	\label{fig:writes-reponse-time-2}
 \end{subfigure}
 \caption{Overall performance for the writes experiment with R=all}
@@ -528,21 +566,39 @@ As we can see from figure \ref{fig:writes-all} significant impact of changing wr
 
 For replication to all servers, however, we can see a significant decrease in the performance as we increase the writes percentage. This is because set requests now need more time to be processed by the middleware (see section \ref{sec:replication-get-set}) than get requests. Therefore, as we increase the percentage of set requests, we increase overall response time, which means decrease in the performance.
 
-To find out for what numbers of servers there is the highest impact on changing the writes percentage we can use a table presented below, where we can see time spent in the middleware for different configurations with replication factor equals to all:
+To find out for what numbers of servers there is the highest impact on changing the writes percentage we can use a table presented below, where we can see the throughput for different configurations with replication factor equals to all. As base case we take the throughput for 3 servers, 1\% write requests and no replication - the throughput for this configuration equals to 12285 [ops/s].
 \medskip
 
-\begin{tabular}{|c|c|c|c|}
-\hline Servers & Time for 1\% writes (us) & Time for 10\% writes (us) & Ratio (10\% writes to 1\% writes) \\ 
-\hline 3 & 6291 & 6921 & 1.10 \\ 
-\hline 5 & 7424  &  8543 & 1.15 \\
-\hline 7 & 9092 & 11017 & 1.21\\
+\begin{tabular}{|c|c|c|c|c|}
+\hline \bf{Servers} & \parbox[t]{2.7cm}{\bf{TPS for \\1\% writes [ops/s]}} & \parbox[t]{2.7cm}{\bf{Throughput for\\ 10\% writes [ops/s]}} & \parbox[t]{3.2cm}{\bf{Ratio (10\% writes \\to 1\% writes)}} & \parbox[t]{3.2cm}{\bf{Ratio (10\% writes \\to the base case)}} \\[3ex] 
+\hline 3 & 12315 & 11791 & 0.96 & 0.96 \\ 
+\hline 5 & 12447 &  10615 & 0.85 & 0.86 \\
+\hline 7 & 11791 & 9858 & 0.83 & 0.80 \\
 \hline 
 \end{tabular}
 \medskip
 
-We can see that the impact of increasing the percentage of writes (from 1\% to 10\%) is increasing as we increase number of servers. This is because when we replicate to all servers, with more servers we have to send more requests. This means that for with more servers we notice the most impact on the response time of set requests and set requests are being processed longer comparing to get requests. As we increase percentage of writes, this impact becomes intensified, since requests that need more time to be processed (set requests) are now more often.
+We can see that the impact of increasing the percentage of writes (from 1\% to 10\%) is increasing as we increase the number of servers. This is because when we replicate to all servers, with more servers we have to send more requests. This means that for with more servers we notice the most impact on the response time of set requests and set requests are being processed longer comparing to get requests. As we increase percentage of writes, this impact becomes intensified, since requests that need more time to be processed (set requests) are now more often. The most impact relative to the base case is for 7 servers (and writes percentage 10\%), which is connected with impact of increasing writes percentage as well as increasing servers number - for 7 servers we have the lowest throughput with 1\% writes.
 
 \subsection{Get requests}
+
+\begin{figure}
+\centering
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width=\linewidth]{plots/writes-response_time-get-1-replication}
+	\caption{Replication factor = 1}
+	\label{fig:writes-get-1}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width=\linewidth]{plots/writes-response_time-get-2-replication}
+	\caption{Replication factor = all}
+	\label{fig:writes-get-2}
+\end{subfigure}
+\caption{Response time for get requests}
+\label{fig:writes-response-time-get}
+\end{figure}
 
 \begin{figure}
 \centering
@@ -562,11 +618,30 @@ We can see that the impact of increasing the percentage of writes (from 1\% to 1
 \label{fig:writes-get}
 \end{figure}
 
-As we can see from figure \ref{fig:writes-get} get requests are not significantly affected by changing the percentage of set requests (for both replication factors). This is because percentage of get requests does not change very much (it varies: 99\%, 95\% and 90\%), so the load for getter workers is similar. What is more we have chosen optimal number of threads which handle get requests with precision 10, so changing amount of get requests slightly (at most 10\%) does not affect the performance much. 
+As we can see from figure \ref{fig:writes-response-time-get} and \ref{fig:writes-get} get requests are not significantly affected by changing the percentage of set requests (for both replication factors). This is because percentage of get requests does not change very much (it varies: 99\%, 95\% and 90\%), so the load for getter workers is similar. What is more we have chosen optimal number of threads which handle get requests with precision 10, so changing amount of get requests slightly (at most 10\%) does not affect the performance much. We can even see a slight decrease in the performance, as we increase replication factor, which might be cause by more work that setter threads has to do, which causes getter threads to get less operating system resources. 
 
-Impact of changing the number of servers for get requests has been thoroughly analyzed in the section \ref{sec:replication-get}.
+Impact of changing the number of servers for get requests has been thoroughly analyzed in the section \ref{sec:replication-get}. Again, we can see that for 5 and 7 servers the bottleneck is handling new requests.
 
 \subsection{Set requests}
+
+\begin{figure}
+\centering
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width=\linewidth]{plots/writes-response_time-set-1-replication}
+	\caption{Replication factor = 1}
+	\label{fig:writes-set-1}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[width=\linewidth]{plots/writes-response_time-set-2-replication}
+	\caption{Replication factor = all}
+	\label{fig:writes-set-2}
+\end{subfigure}
+\caption{Response timeh for set requests}
+\label{fig:writes-response-time-set}
+\end{figure}
+
 
 \begin{figure}
 \centering
@@ -586,7 +661,10 @@ Impact of changing the number of servers for get requests has been thoroughly an
 \label{fig:writes-set}
 \end{figure}
 
-The situation looks differently for set requests. We can see from figure \ref{fig:writes-set} that for no replication changes in percentage of writes do not influence significantly time spent in the middleware for set requests (apart from 3 servers, where increase from 1\% to 5\% can be considered significant). For replication factor equals to all we can see, however, a significant increase in the time spent in the middleware for set requests, especially for 5 and 7 servers. When we look at the figure \ref{fig:writes-set-breakdown-2} we can see that this is caused by the increase by the increase of the time spent in the servers, because time spent in the queue does not change noticeable when we vary writes percentage. This can be explained by the way setter workers are implemented in my system (see implementation\footnote{\url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/src/pl/matal/SetterWorker.java}}). When setter worker executes its active waiting loop, it checks whether there are some responses waiting from the server and if yes it handles one of them. After that it checks whether there are any requests from the queue and it yes it handles one of them. This means that every run, if there is a request in the queue, it will be processed. In consequence, increasing writes percentage does not affect time spent in the queue significantly - although we have more requests, they can be taken from the queue effectively. However, as we increase the percentage of writes with replication to all servers we also increase the number of responses that have to be processed. Because we replicate to all servers the effect of this is increased time spent in the servers. Let's remember here that time spent in the servers consists also of waiting of responses in the middleware to be process by the setter thread. This means that with increasing percentage of writes more responses have to be processed by the middleware. To sum up this analysis, as we increase the percentage of writes, number of requests in the queue and number of requests send to server increase by the same factor, but increase in the time is more visible for requests send to server, since we replicate each of them (with more requests decrease in the performance is more visible). The possible area of improvement here might be to very the proportion of handling requests from the queue and responses from the server. If we e.g. for every processed request taken from the queue we process 2 responses from the servers (if available), then for big replication factor the performance might improve.
+The situation looks differently for set requests. We can see from figure \ref{fig:writes-replication-timeset} and  \ref{fig:writes-set} that for no replication changes in percentage of writes do not influence significantly time spent in the middleware and response time for set requests (apart from 3 servers, where increase from 1\% to 5\% can be considered significant). For replication factor equals to all we can see, however, a significant increase in the time spent in the middleware and response time for set requests, especially for 5 and 7 servers. When we look at the figure \ref{fig:writes-set-breakdown-2} we can see that this is caused by the increase by the increase of the time spent in the servers, because time spent in the queue does not change noticeable when we vary writes percentage. Although we do increase the number of set requests, we still can take requests from the queue efficiently - like described in the section \ref{sec:replication-set}
+%
+%This can be explained by the way setter workers are implemented in my system (see implementation\footnote{\url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/src/pl/matal/SetterWorker.java}}). When setter worker executes its active waiting loop, it checks whether there are some responses waiting from the server and if yes it handles one of them. After that it checks whether there are any requests from the queue and it yes it handles one of them. This means that every run, if there is a request in the queue, it will be processed. In consequence, increasing writes percentage does not affect time spent in the queue significantly - although we have more requests, they can be taken from the queue effectively. 
+However, as we increase the percentage of writes with replication to all servers we also increase the number of responses that have to be processed. Because we replicate to all servers this results in an increased time spent in the servers. Let's remember here that time spent in the servers consists also of waiting of responses in the middleware to be process by the setter thread. This means that with increasing percentage of writes more responses have to be processed by the middleware. To sum up this analysis, as we increase the percentage of writes, number of requests in the queue and number of requests send to server increase by the same factor, but increase in the time is more visible for requests send to server, since we replicate each of them (with more requests decrease in the performance is more visible). The possible area of improvement here might be to very the proportion of handling requests from the queue and responses from the server. If we e.g. for every processed request taken from the queue we process 2 responses from the servers (if available), then for big replication factor the performance might improve.
 
 Impact of changing the number of servers for get requests has been thoroughly analyzed in the section \ref{sec:replication-set}.
 
@@ -609,6 +687,40 @@ Impact of changing the number of servers for get requests has been thoroughly an
 \end{figure}
 
 \subsection{Verification of hypothesis}
-As predicted, increasing the writes percentage resulted in the performance decreasing, especially for replicating to all servers. This can be explained by higher number of set requests, which are processed slower, as well as increase in the time set requests are process when there are more of them. 
+As predicted, increasing the writes percentage resulted in the performance decreasing, especially for replicating to all servers. This can be explained by higher number of set requests, which are processed slower, as well as increase in the time set requests are processed when there are more of them. 
+
+
+\pagebreak
+
+\section*{Logfile listing}
+
+\begin{tabular}{|c|p{12.0cm}|}
+\hline \textbf{Short name }& \textbf{Location} \\ 
+\hline  overall\_1 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/overall_1.tar.gz}\\ 
+\hline overall\_2 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/overall_2.tar.gz}\\ 
+\hline overall\_3 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/overall_3.tar.gz}\\ 
+\hline overall\_4 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/overall_4.tar.gz}\\ 
+\hline overall\_5 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/overall_5.tar.gz}\\ 
+\hline overall\_general & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/overall_general.tar.gz}\\ 
+\hline  detailed\_1 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/detailed_1.tar.gz}\\
+\hline  detailed\_2 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/detailed_2.tar.gz}\\ 
+\hline  detailed\_3 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/detailed_3.tar.gz}\\ 
+\hline  detailed\_4 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/detailed_4.tar.gz}\\ 
+\hline  detailed\_5 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/detailed_5.tar.gz}\\ 
+\hline  detailed\_general & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/detailed_general.tar.gz}\\ 
+\hline  max\_throughput\_detailed & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/max_throughput_detailed.tar.gz}\\ 
+\hline  replication\_1 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/replication_1.tar.gz}\\ 
+\hline  replication\_2 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/replication_2.tar.gz}\\ 
+\hline  replication\_3 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/replication_3.tar.gz}\\ 
+\hline  replication\_general & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/replication_general.tar.gz}\\ 
+\hline  replication\_middleware & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/replication_middleware.tar.gz}\\ 
+\hline  writes\_1 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/writes_1.tar.gz}\\ 
+\hline  writes\_2 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/writes_2.tar.gz}\\ 
+\hline  writes\_3 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/writes_3.tar.gz}\\ 
+\hline  writes\_general & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/writes_general.tar.gz}\\ 
+\hline  writes\_middleware & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone2/writes_middleware.tar.gz}\\ 
+\hline 
+\end{tabular}
+
  
 \end{document}

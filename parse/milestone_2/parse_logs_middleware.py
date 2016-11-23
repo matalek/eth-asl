@@ -4,6 +4,8 @@ from parse.milestone_2.parse_logs_vms import *
 repetitions = 3
 stats_cnt = 3
 
+per_values = [25, 90]
+
 def parse_middleware_times(fbase, type, headers, repetition=0):
 	res = []
 	directory = './logs'
@@ -46,6 +48,8 @@ def parse_middleware_times_single(fname, type):
 		cnt = len(res[i])
 		res[i] = res[i][int(cnt / 3):int(2 * cnt / 3)]
 		data += [str(np.average(res[i])), str(np.std(res[i]))]
+		for p in per_values:
+			data.append(str(np.percentile(res[i], p)))
 	return data
 
 def combine_repetitions(fbase, params_size=2):
@@ -58,28 +62,39 @@ def combine_repetitions(fbase, params_size=2):
 	headers = lines[0][0].rstrip()
 	res = []
 
+	total_stats_cnt = stats_cnt * (2 + len(per_values))
 	for i in range(1, lines_cnt):
 		values = []
-		for j in range(0, stats_cnt * 2):
+		for j in range(0, total_stats_cnt):
 			values.append(0)
 		for rep in range(0, repetitions):
 			line = lines[rep][i].split(',')
 			params = line[:params_size]
 			# params[1] = params[1][:1]
-			for j in range(0, stats_cnt * 2):
+			for j in range(0, total_stats_cnt):
 				values[j] += float(line[params_size + j])
-		for j in range(0, stats_cnt * 2):
+		for j in range(0, total_stats_cnt):
 			values[j] = str(values[j] / repetitions)
 		res.append(params + values)
 
 	res = [[headers]] + res
 	write_to_file(fbase, res)
 
+def stats_headers():
+	base = ['Middleware time', 'Queue time', 'Servers time']
+	ending = ['', ' std']
+	for p in per_values:
+		ending.append(' ' + str(p) + 'th percentile')
+	res = []
+	for b in base:
+		for e in ending:
+			res.append(b + e)
+	return res
+
 # --------- Effect of replication task -------------
 
 def parse_replication_middleware():
-	middleware_headers = ['Replication factor', 'Number of servers', 'Middleware time', 'Middleware time std', 
-			'Queue time', 'Queue time std', 'Server time', 'Server time std']
+	middleware_headers = ['Replication factor', 'Number of servers'] + stats_headers()
 	for i in range(1, repetitions + 1):
 		parse_middleware_times('replication', 'get', middleware_headers, i)
 		parse_middleware_times('replication', 'set', middleware_headers, i)
@@ -95,8 +110,7 @@ def combine_replication_repetitions():
 # --------- Effect of writes task -------------
 
 def parse_writes_middleware():
-	middleware_headers = ['Writes percentage', 'Number of servers', 'Replication factor', 'Middleware time', 'Middleware time std', 
-			'Queue time', 'Queue time std', 'Server time', 'Server time std']
+	middleware_headers = ['Writes percentage', 'Number of servers', 'Replication factor'] + stats_headers()
 	for i in range(1, repetitions + 1):
 		parse_middleware_times('writes', 'get', middleware_headers, i)
 		parse_middleware_times('writes', 'set', middleware_headers, i)

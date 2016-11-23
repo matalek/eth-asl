@@ -1,6 +1,7 @@
 import os
 import math
 import statistics as st
+from functools import reduce
 # import numpy as np
 
 def is_to_move(filename):
@@ -44,32 +45,35 @@ def write_to_named_file(fname, content):
 					f.write(',')
 			f.write('\n')
 
+headers_response_time_end = ['Response time', 'Standard deviation', 'Bucket distribution (value, size)']
+
 def parse_max_throughput(detailed):
 	if detailed:
 		directory = './logs/detailed'
 	else:
 		directory = './logs/overall'
-	parse_throughput('max_throughput', ['Number of clients', 'Size of thread pool', 'TPS'], directory)
+	parse_throughput('max_throughput', ['Number of clients', 'Size of thread pool', 'TPS', 'Standard deviation'], directory)
+	print('')
 	parse_response_time('max_throughput', 'max_throughput-response_time',
-			['Number of clients', 'Size of thread pool', 'Response time', 'Standard deviation'], directory)
+			['Number of clients', 'Size of thread pool'] + headers_response_time_end, directory)
 
 def parse_replication():
 	params_header = ['Replication factor', 'Number of servers', 'Repetition']
 	parse_throughput('replication', params_header + ['TPS', 'Standard deviation'])
 	parse_response_time('replication', 'replication-response_time',
-				params_header + ['Response time', 'Standard deviation'])
+				params_header + headers_response_time_end)
 	for type in ['Get', 'Set']:
 		parse_response_time('replication', 'replication-response_time-%s' % type.lower(),
-				params_header + ['Response time', 'Standard deviation'], type=type)
+				params_header + headers_response_time_end, type=type)
 
 def parse_writes():
-	params_header = ['Writes percentage', 'Number of servers', 'Replication factor' 'Repetition']
+	params_header = ['Writes percentage', 'Number of servers', 'Replication factor', 'Repetition']
 	parse_throughput('writes', params_header + ['TPS', 'Standard deviation'])
 	parse_response_time('writes', 'writes-response_time',
-			params_header + ['Response time', 'Standard deviation'])
+			params_header + headers_response_time_end)
 	for type in ['Get', 'Set']:
 		parse_response_time('writes', 'writes-response_time-%s' % type.lower(),
-				params_header + ['Response time', 'Standard deviation'], type=type)
+				params_header + headers_response_time_end, type=type)
 
 
 def get_params(fbase, filename):
@@ -96,7 +100,12 @@ def parse_throughput(fbase, headers, directory='./logs'):
 start_time = 60
 end_time = 120
 
-def parse_throughput_single(fname):
+def average(l):
+	return reduce(lambda x, y: x + y, l) / float(len(l))
+
+avg_max = 0
+
+def parse_throughput_single(fname, to_split=False):
 	print(fname)
 	till_stability_throughput = 0
 	res = []
@@ -119,6 +128,22 @@ def parse_throughput_single(fname):
 					break
 			i += 1
 		throughput = (throughput * end_time - till_stability_throughput * start_time) / (end_time - start_time)
+
+		# only for max-throughput
+		# to_split = True
+		if to_split:
+			global avg_max
+			n = len(res)
+			# avgs = [average(res[0:int(n/3)]), average(res[int(n/3):int(2*n/3)]), average(res[int(n*2/3):n])]
+			avgs = [st.pstdev(res[0:int(n/3)]), st.pstdev(res[int(n/3):int(2*n/3)]), st.pstdev(res[int(n*2/3):n])]
+			avg = average(avgs)
+			avgs2 = []
+			for e in avgs:
+				avgs2.append(abs(e - avg) / avg)
+			temp = average(avgs2)
+			avg_max = max(avg_max, temp)
+			print(avg_max)
+
 		return [str(throughput), str(st.pstdev(res))]
 
 def parse_response_time(fbase, result_name, headers, directory='./logs', type='Total'):
@@ -132,20 +157,27 @@ def parse_response_time(fbase, result_name, headers, directory='./logs', type='T
 	res = [headers] + res
 	write_to_file(result_name, res)
 
-def parse_response_time_single(fname, type):
+avg_max2 = 0
+
+def parse_response_time_single(fname, type, to_split=False):
 	print(fname)
 	till_stability_average = 0
 	till_stability_std= 0
 	with open(fname, 'r') as fh:
 		lines = fh.readlines()
 		i = 0
+		started = False
+		res = []
 		while i < len(lines):
 			line = lines[i]
 			if (line.find('%s Statistics' % type) != -1) and (line.find('%s Statistics (' % type) == -1):
 				i += 3
+				if started:
+					res.append(float(lines[i].split()[9]))
 				if lines[i].split()[1] == str(start_time):
 					till_stability_average = float(lines[i].split()[8])
 					till_stability_std = float(lines[i].split()[9])
+					started = True
 				elif lines[i].split()[1] == str(end_time):
 					response_time = float(lines[i].split()[8])
 					response_time_std = float(lines[i].split()[9])
@@ -168,5 +200,19 @@ def parse_response_time_single(fname, type):
 		response_time_std = math.sqrt((math.pow(response_time_std, 2) * end_time 
 				- math.pow(till_stability_std, 2) * start_time) / (end_time - start_time))
 
+		# only for max-throughput
+		# to_split = True
+		if to_split:
+			global avg_max2
+			n = len(res)
+			avgs = [average(res[0:int(n/3)]), average(res[int(n/3):int(2*n/3)]), average(res[int(n*2/3):n])]
+			avg = average(avgs)
+			# stds = [st.pstdev(res[0:int(n/3)]), st.pstdev(res[int(n/3):int(2*n/3)]), st.pstdev(res[int(n*2/3):n])]
+			avgs2 = []
+			for e in avgs:
+				avgs2.append(abs(e - avg) / avg)
+			temp = average(avgs2)
+			avg_max2 = max(avg_max2, temp)
+			print('r' + str(avg_max2))
 
 		return [str(response_time), str(response_time_std)] + perc

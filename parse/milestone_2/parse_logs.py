@@ -9,13 +9,13 @@ colors_6 = ['b', 'g', 'r', 'c', 'm', 'y']
 
 per_values = [25, 90]
 
-def combine_throughput(fbase, servers=5, params_size=2, rep=False):
-	combine(fbase, True, servers, params_size, rep)
+def combine_throughput(fbase, headers=[], servers=5, params_size=2, rep=False):
+	combine(fbase, headers, True, servers, params_size, rep)
 
-def combine_response_time(fbase, servers=5, params_size=2, rep=False):
-	combine(fbase, False, servers, params_size, rep)
+def combine_response_time(fbase, headers=[], servers=5, params_size=2, rep=False):
+	combine(fbase, headers, False, servers, params_size, rep)
 
-def combine(fbase, is_throughput, servers, params_size=2, rep=False):
+def combine(fbase, headers, is_throughput, servers, params_size=2, rep=False):
 	res = {}
 	cnts = {}
 	stats = {}
@@ -70,6 +70,7 @@ def combine(fbase, is_throughput, servers, params_size=2, rep=False):
 	if rep:
 		res_file_name += '-rep'
 
+	data = [headers] + data
 	write_to_named_file(res_file_name + '.log', data)
 
 def combine_stats(cur, stats):
@@ -115,11 +116,13 @@ def most_common(l):
 	counts =  np.bincount(a)
 	return np.argmax(counts)
 
-def combine_vms_repetitions(fbase, params_size, is_time=True):
+def combine_vms_repetitions(fbase, headers, params_size, is_time=True):
+	print(fbase)
 	f = open('./logs_working/' + fbase + '-rep.log', 'r')
 	res = {}
 	cnts = {}
-	for line in f:
+	lines = f.readlines()[1:]
+	for line in lines:
 		values = line.split(',')
 		key = ','.join(values[:params_size])
 		[value, std, per] = res.get(key, [0, 0, []])
@@ -136,6 +139,18 @@ def combine_vms_repetitions(fbase, params_size, is_time=True):
 		res[key] = [value, std, per]
 		cnts[key] = cnt + 1
 
+	avgs = []
+	stds = []
+	for line in lines:
+		values = line.split(',')
+		key = ','.join(values[:params_size])
+		[value, std, per] = res.get(key, [0, 0, []])
+		avg = value / cnts[key]
+		std = std / cnts[key]
+		avgs.append(abs(avg - float(values[params_size + 1])) / avg)
+		stds.append(abs(std - float(values[params_size + 2])) / std)
+	print(np.average(avgs))
+	print(np.average(stds))
 
 	data = []
 	max_value = 0
@@ -149,6 +164,13 @@ def combine_vms_repetitions(fbase, params_size, is_time=True):
 				per.append(str(most_common(values[2][i])))
 		data.append(new_key + [str(value), str(std)] + per)
 	data.sort()
+
+	if is_time:
+		headers = headers + ['Response time', 'Standard deviation', '25th percentile', '90th percentile']
+	else:
+		headers = headers + ['TPS', 'Standard deviation']
+
+	data = [headers] + data
 	write_to_named_file('./logs_working/' + fbase + '.log', data)
 
 # --------- Middleware logs -------------
@@ -374,6 +396,8 @@ def plot_max_throughput_response_time_global(detailed=False):
 	t = 0
 	for threads in range(0, (max_threads - min_threads) // step_threads + 1):
 		plt.plot(x[threads], y[threads], color=colors_6[t], label = str(min_threads + threads * step_threads))
+		plt.errorbar(list(map(lambda el: el + t * 3, x[threads])), y[threads], std[threads], color=colors_6[t], fmt='|')
+		# plt.plot(x[threads], y[threads], label = str(min_threads + threads * step_threads), color=colors_6[col_num])
 		i = 0
 		for p in per_values:
 			plt.plot(x[threads], list(map(lambda el: el + t*1000, per[threads][i])), color=colors_6[t])
@@ -391,6 +415,8 @@ def plot_max_throughput_response_time_global(detailed=False):
 	else:
 		plt.text(450, 75000, '90%')
 		plt.text(450, 10000, '25%')
+		plt.gca().set_xlim(right=520)
+		plt.gca().set_ylim(top=175000)
 
 	plt.title(plot_title_name)
 	plt.ylabel('Response time [us]')
@@ -429,13 +455,14 @@ def plot_replication():
 	plot_replication_general('replication-response_time', 'replication-response_time', is_time=True, plot_percentiles=True)
 	for type in ['get', 'set', 'all']:
 		plot_replication_general('replication-%s' % type, 'replication-%s' % type, header_line=True)
-		plot_replication_general('replication-%s' % type, 'replication-%s-queue' % type, 4, True)
-		plot_replication_general('replication-%s' % type, 'replication-%s-servers' % type, 6, True)
+		plot_replication_general('replication-%s' % type, 'replication-%s-queue' % type, 6, True)
+		plot_replication_general('replication-%s' % type, 'replication-%s-servers' % type, 10, True)
 	for type in ['get', 'set']:
 		plot_replication_general('replication-response_time-%s' % type, 'replication-response_time-%s' % type, is_time=True, plot_percentiles=True)
+		plot_replication_general('replication-response_time-%s' % type, 'replication-response_time-%s-scaled' % type, is_time=True, plot_percentiles=True, y_lim=35000)
 		plot_replication_general('replication-%s' % type, 'replication-%s-scaled' % type, header_line=True, y_lim=25000)
 
-def plot_replication_general(fbase, title, which_params=2, header_line=False, is_time=True, y_lim=-1, plot_percentiles=False):
+def plot_replication_general(fbase, title, which_params=2, header_line=False, is_time=True, y_lim=-1, plot_percentiles=True):
 	print(title)
 	fname = 'logs_working/%s.log' % fbase
 
@@ -462,7 +489,7 @@ def plot_replication_general(fbase, title, which_params=2, header_line=False, is
 			if is_time and plot_percentiles:
 				i = 0
 				for p in per_values:
-					per[rep_it][i].append(int(line[which_params + 2 + i]))
+					per[rep_it][i].append(float(line[which_params + 2 + i]))
 					i += 1
 
 	N = 3
@@ -523,12 +550,12 @@ def plot_writes():
 	plot_writes_general('writes-response_time', 'writes-response_time', is_time=True)
 	for type in ['get', 'set', 'all']:
 		plot_writes_general('writes-%s' % type, 'writes-%s' % type, header_line=True)
-		plot_writes_general('writes-%s' % type, 'writes-%s-queue' % type, 5, True)
-		plot_writes_general('writes-%s' % type, 'writes-%s-servers' % type, 7, True)
+		plot_writes_general('writes-%s' % type, 'writes-%s-queue' % type, 7, True)
+		plot_writes_general('writes-%s' % type, 'writes-%s-servers' % type, 11, True)
 	for type in ['get', 'set']:
 		plot_writes_general('writes-response_time-%s' % type, 'writes-response_time-%s' % type, is_time=True)
 
-def plot_writes_general(fbase, title, which_params=3, header_line=False, is_time=True):
+def plot_writes_general(fbase, title, which_params=3, header_line=False, is_time=True, plot_percentiles=True):
 	print(title)
 	fname = 'logs_working/%s.log' % fbase
 
@@ -536,9 +563,14 @@ def plot_writes_general(fbase, title, which_params=3, header_line=False, is_time
 		x = writes_percentage_factors
 		y = []
 		std = []
+		per = []
 		for servers in servers_values:
 			y.append([])
 			std.append([])
+			temp = []
+			for p in per_values:
+				temp.append([])
+			per.append(temp)
 
 		with open(fname, 'r') as f:
 			if header_line:
@@ -546,8 +578,14 @@ def plot_writes_general(fbase, title, which_params=3, header_line=False, is_time
 			for line in f:
 				line = line.split(',')
 				if int(line[2]) == replication:
-					y[writes_percentage_factors.index(int(line[0]))].append(float(line[which_params])) # assuming somehow sorted
-					std[writes_percentage_factors.index(int(line[0]))].append(float(line[which_params + 1])) # assuming somehow sorted
+					writes_it = writes_percentage_factors.index(int(line[0]))
+					y[writes_it].append(float(line[which_params])) # assuming somehow sorted
+					std[writes_it].append(float(line[which_params + 1])) # assuming somehow sorted
+					if is_time and plot_percentiles:
+						i = 0
+						for p in per_values:
+							per[writes_it][i].append(float(line[which_params + 2 + i]))
+							i += 1
 
 		N = 3
 
@@ -562,6 +600,12 @@ def plot_writes_general(fbase, title, which_params=3, header_line=False, is_time
 			rects.append(
 					ax.bar(ind + i * width, y[i], width, color=colors[i], yerr=std[i],
 							error_kw=dict(ecolor='purple', lw=1, capsize=2, capthick=2)))
+			if is_time and plot_percentiles:
+				j = 0
+				per_colors = ['w', 'k']
+				for p in per_values:
+					ax.plot(ind + (i + 0.5) * width, per[i][j], marker='x', markersize=10, mew=2, linestyle='None', color=per_colors[j])
+					j += 1
 			i += 1
 
 
