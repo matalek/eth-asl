@@ -60,11 +60,11 @@ def combine_logs(experiment, headers, response_time=False, servers=5, params_siz
 		if types:
 			for type in ['get', 'set']:
 				combine_response_time('%s/%s-response_time-%s' % (directory, experiment, type), 
-						headers + ['Response time', 'Standard deviation', '25th percentile', '90th percentile'],
+						headers + ['Response time', 'Standard deviation', '25th percentile', '50th percentile', '90th percentile'],
 						servers, params_size, rep)
 
 		combine_response_time('%s/%s-response_time' % (directory, experiment),
-				headers + ['Response time', 'Standard deviation', '25th percentile', '90th percentile'], servers, params_size, rep)
+				headers + ['Response time', 'Standard deviation', '25th percentile', '50th percentile', '90th percentile'], servers, params_size, rep)
 
 def run_experiments_remote():
 	copy_fab()

@@ -4,7 +4,7 @@ from parse.milestone_2.parse_logs_vms import *
 repetitions = 3
 stats_cnt = 3
 
-per_values = [25, 90]
+per_values = [25, 50, 90]
 
 def parse_middleware_times(fbase, type, headers, repetition=0):
 	res = []

@@ -166,7 +166,7 @@ def combine_vms_repetitions(fbase, headers, params_size, is_time=True):
 	data.sort()
 
 	if is_time:
-		headers = headers + ['Response time', 'Standard deviation', '25th percentile', '90th percentile']
+		headers = headers + ['Response time', 'Standard deviation', '25th percentile', '50th percentile', '90th percentile']
 	else:
 		headers = headers + ['TPS', 'Standard deviation']
 
@@ -361,8 +361,8 @@ def plot_max_throughput_response_time_global(detailed=False):
 		dir_name = 'overall'
 		min_threads = 10
 		max_threads = 60
+
 	fname = 'logs_working/%s/max_throughput-response_time.log' % dir_name
-	# fname = 'logs_working/max_throughput-response_time.log'
 	x = []
 	y = []
 	per = []
@@ -378,6 +378,7 @@ def plot_max_throughput_response_time_global(detailed=False):
 		per.append(temp)
 
 	with open(fname, 'r') as f:
+		next(f)
 		for line in f:
 			line = line.split(',')
 			clients = int(line[0])
@@ -396,11 +397,19 @@ def plot_max_throughput_response_time_global(detailed=False):
 	t = 0
 	for threads in range(0, (max_threads - min_threads) // step_threads + 1):
 		plt.plot(x[threads], y[threads], color=colors_6[t], label = str(min_threads + threads * step_threads))
-		plt.errorbar(list(map(lambda el: el + t * 3, x[threads])), y[threads], std[threads], color=colors_6[t], fmt='|')
+		if detailed:
+			col = 'r'
+		else:
+			col = colors_6[t]
+		plt.errorbar(list(map(lambda el: el + t * 3, x[threads])), y[threads], std[threads], color=col, fmt='|')
 		# plt.plot(x[threads], y[threads], label = str(min_threads + threads * step_threads), color=colors_6[col_num])
 		i = 0
 		for p in per_values:
-			plt.plot(x[threads], list(map(lambda el: el + t*1000, per[threads][i])), color=colors_6[t])
+			if detailed:
+				col = 'g'
+			else:
+				col = colors_6[t]
+			plt.plot(x[threads], list(map(lambda el: el + t*1000, per[threads][i])), color=col)
 			i += 1
 		t += 1
 
@@ -455,14 +464,14 @@ def plot_replication():
 	plot_replication_general('replication-response_time', 'replication-response_time', is_time=True, plot_percentiles=True)
 	for type in ['get', 'set', 'all']:
 		plot_replication_general('replication-%s' % type, 'replication-%s' % type, header_line=True)
-		plot_replication_general('replication-%s' % type, 'replication-%s-queue' % type, 6, True)
-		plot_replication_general('replication-%s' % type, 'replication-%s-servers' % type, 10, True)
+		plot_replication_general('replication-%s' % type, 'replication-%s-queue' % type, 7, True)
+		plot_replication_general('replication-%s' % type, 'replication-%s-servers' % type, 12, True)
 	for type in ['get', 'set']:
 		plot_replication_general('replication-response_time-%s' % type, 'replication-response_time-%s' % type, is_time=True, plot_percentiles=True)
 		plot_replication_general('replication-response_time-%s' % type, 'replication-response_time-%s-scaled' % type, is_time=True, plot_percentiles=True, y_lim=35000)
 		plot_replication_general('replication-%s' % type, 'replication-%s-scaled' % type, header_line=True, y_lim=25000)
 
-def plot_replication_general(fbase, title, which_params=2, header_line=False, is_time=True, y_lim=-1, plot_percentiles=True):
+def plot_replication_general(fbase, title, which_params=2, header_line=True, is_time=True, y_lim=-1, plot_percentiles=True):
 	print(title)
 	fname = 'logs_working/%s.log' % fbase
 
@@ -507,7 +516,7 @@ def plot_replication_general(fbase, title, which_params=2, header_line=False, is
 						error_kw=dict(ecolor='purple', lw=1, capsize=2, capthick=2)))
 		if is_time and plot_percentiles:
 			j = 0
-			per_colors = ['w', 'k']
+			per_colors = ['w', 'y', 'k']
 			for p in per_values:
 				ax.plot(ind + (i + 0.5) * width, per[i][j], marker='x', markersize=10, mew=2, linestyle='None', color=per_colors[j])
 				j += 1
@@ -550,12 +559,12 @@ def plot_writes():
 	plot_writes_general('writes-response_time', 'writes-response_time', is_time=True)
 	for type in ['get', 'set', 'all']:
 		plot_writes_general('writes-%s' % type, 'writes-%s' % type, header_line=True)
-		plot_writes_general('writes-%s' % type, 'writes-%s-queue' % type, 7, True)
-		plot_writes_general('writes-%s' % type, 'writes-%s-servers' % type, 11, True)
+		plot_writes_general('writes-%s' % type, 'writes-%s-queue' % type, 8, True)
+		plot_writes_general('writes-%s' % type, 'writes-%s-servers' % type, 13, True)
 	for type in ['get', 'set']:
 		plot_writes_general('writes-response_time-%s' % type, 'writes-response_time-%s' % type, is_time=True)
 
-def plot_writes_general(fbase, title, which_params=3, header_line=False, is_time=True, plot_percentiles=True):
+def plot_writes_general(fbase, title, which_params=3, header_line=True, is_time=True, plot_percentiles=True):
 	print(title)
 	fname = 'logs_working/%s.log' % fbase
 
@@ -602,7 +611,7 @@ def plot_writes_general(fbase, title, which_params=3, header_line=False, is_time
 							error_kw=dict(ecolor='purple', lw=1, capsize=2, capthick=2)))
 			if is_time and plot_percentiles:
 				j = 0
-				per_colors = ['w', 'k']
+				per_colors = ['w', 'y', 'k']
 				for p in per_values:
 					ax.plot(ind + (i + 0.5) * width, per[i][j], marker='x', markersize=10, mew=2, linestyle='None', color=per_colors[j])
 					j += 1
