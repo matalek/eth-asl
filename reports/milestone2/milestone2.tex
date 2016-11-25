@@ -134,7 +134,7 @@ The values that we got here correspond nicely to results predicted by the intera
 \medskip
 \fi
 
-It must also be pointed out here that number of threads does not make such a big difference as one could expect. We can clearly see in the plot that the middleware having 10 threads in each of the thread pool is performing noticeably worse then the middleware having more threads. We can still see that below 300 clients the middleware with the thread pool of size 20 is performing less effective than with other configurations. However, for bigger number of clients and size of the thread pool, difference in performance is not really significant. Therefore, as the optimal number of threads I have chosen 30 threads, since lower number of threads results in noticeably lower performance and higher number of threads does not make a significant difference. When we also take a look at the percentiles for the response time, we can see that the increase 90th percentile for 10 threads is achieved for lower number of clients than for the rest of threads values. Also the increase for 25th percentile for 20 threads is achieved for the lower number of clients. This indicates that with these 2 values of threads in the thread pool our middleware performs worse than with higher number of threads.
+It must also be pointed out here that number of threads does not make such a big difference as one could expect. We can clearly see in the plot that the middleware having 10 threads in each of the thread pool is performing noticeably worse then the middleware having more threads. We can still see that below 300 clients the middleware with the thread pool of size 20 is performing less effective than with other configurations. However, for bigger number of clients and size of the thread pool, difference in performance is not really significant. Therefore, as the optimal number of threads I have chosen 30 threads, since lower number of threads results in noticeably lower performance and higher number of threads does not make a significant difference. When we also take a look at the percentiles for the response time, we can see that the increase for 90th percentile for 10 threads is achieved for lower number of clients than for the rest of threads values. Also the increase for 25th percentile for 20 threads is achieved for the lower number of clients. This indicates that with these 2 values of threads in the thread pool our middleware performs worse than with higher number of threads.
 
 There are two reasons why this is the case. Firstly, for more threads the bottleneck for the middleware shifts to the process of receiving incoming requests from the clients (see subsection \ref{sec:max-throughput-explanation}).  Secondly, this is caused by %This will be thoroughly analyzed in the subsection \ref{sec:time-breakdown}. What is more, the reason for not big effect of the number of threads might be 
 the overhead from operating systems. Having more threads costs some system resources and since the virtual machine has only 8 cores, the threads might not be in reality performing task in parallel, but rather one after another. What is more, most of the time will be spend in the servers, not in the queue, which will be analyzed thoroughly in the subsection \ref{sec:time-breakdown}.
@@ -162,7 +162,7 @@ The purpose of this experiment was to find out the more precise number of client
 \end{tabular} }
 \medskip
 
-I have combined the overall results from 3 partial results (one minute of the experiment). The variation between repetitions for average was quite small - values differed from average: for throughput at most 2.6\%, for response time - at most 1.4\%. However the variation for standard deviation was bigger - they differed from average standard deviation: for throughput - at most 17.6\%, for response time - 5.5\%. Again, for throughput we get here higher value. All these values, however, are lower than corresponding values from the overall experiment, because we have less measurements in this experiment.
+I have combined the overall results from 3 partial results (one minute of the experiment). The variation between repetitions for average was quite small - values differed from average: for throughput at most 2.6\%, for response time - at most 1.4\%. However the variation for standard deviation was bigger - they differed from average standard deviation: for throughput - at most 17.6\%, for response time - 5.5\%. Again, for throughput we get here a higher value. All these values, however, are lower than corresponding values from the overall experiment, because we have less measurements in this experiment.
 
 \begin{figure}
 \centering
@@ -180,12 +180,12 @@ I have combined the overall results from 3 partial results (one minute of the ex
 \label{fig:max-throughput-detailed}
 \end{figure}
 
-Results of this experiments are visible in the figure \ref{fig:max-throughput-detailed}. When we analyze this figures, there are 4 configurations that are to be considered when it comes to finding the maximal effective throughput. Data for these configurations is collected in the table below:
+Results of this experiments are visible in the figure \ref{fig:max-throughput-detailed}. When we analyze this figure, there are 4 configurations that are to be considered when it comes to finding the maximal effective throughput. Data for these configurations is collected in the table below:
 
 \medskip
 
 \begin{tabular}{|c|c|c|c|}
-\hline \bf{Clients \#} & Throughput [ops/s] &\bf{Average response time [us]}  \\
+\hline \bf{Clients \#} & \bf{Throughput [ops/s]} &\bf{Average response time [us]}  \\
 \hline 160 & 13556 & 11858 \\
 \hline 210 & 13812 & 15268 \\
 \hline 250 & 13828 & 18149 \\
@@ -212,7 +212,7 @@ In the whole report, whenever I mention queue time, I mean time spent by the req
 \medskip
 
 \begin{tabular}{|c|c|c|c|c|c|}
-\hline \bf{Time spent ...} & \bf{Avg. [us]} & \parbox[t]{2.0cm}{\bf{Std.\\dev. [us]}} & \parbox[t]{2.5cm}{\bf{Coefficient of \\variation}} & \parbox[t]{1.7cm}{\bf{25th \\per. [us]}} & \parbox[t]{1.7cm}{\bf{90th \\per. [us]}} \\[3ex]
+\hline \bf{Time spent ...} & \bf{Avg. [us]} & \parbox[t]{1.9cm}{\bf{Std.\\dev. [us]}} & \parbox[t]{2.6cm}{\bf{Coefficient of \\variation}} & \parbox[t]{1.7cm}{\bf{25th \\per. [us]}} & \parbox[t]{1.7cm}{\bf{90th \\per. [us]}} \\[3ex]
 \hline in the middleware & 6723 & 12213 & 1.76 & 801 & 12997 \\
 \hline in the queue & 2557 & 7192 & 2.69 & 23 & 7952\\
 \hline in the server & 4119 & 9329 & 2.22 & 550 & 9689\\
