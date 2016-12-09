@@ -7,10 +7,6 @@ def start_vms():
 	for host in range(1, 12):
 		local('azure vm start FOR_ASL foraslvms%d &' % host)
 
-def stop_vms():
-	for host in range(1, 12):
-		local('azure vm deallocate FOR_ASL foraslvms%d &' % host)
-
 def copy_key():
 	for host in range(1, 11):
 		with settings(host_string='asl%d' % host):
@@ -32,21 +28,6 @@ def copy_workloads():
 def copy_plots():
 	local('cp plots/*.png reports/milestone2/plots')
 
-def run_memcached_many(cnt=5):
-	hosts = [1, 5, 6, 7, 8, 9, 10]
-	for i in range(0, cnt):
-		run_memcached('asl' + str(hosts[i]), ' -m 256')
-
-def stop_memcached_many(cnt=7):
-	servers = [1, 5, 6, 7, 8, 9, 10]
-	for i in range(0, cnt):
-		stop_memcached('asl' + str(servers[i]))
-
-def stop_memaslap_many(cnt=5):
-	servers = [2, 3, 4, 9, 10]
-	for i in range(0, cnt):
-		stop_memaslap('asl' + str(servers[i]))
-
 def run_middleware(threads, rep, memcached_string, log_output_file, std_output_file='/dev/null'):
 	with settings(host_string='asl11'):
 		with cd('asl-fall16-project'):
@@ -59,7 +40,7 @@ def combine_logs(experiment, headers, response_time=False, servers=5, params_siz
 	if response_time:
 		if types:
 			for type in ['get', 'set']:
-				combine_response_time('%s/%s-response_time-%s' % (directory, experiment, type), 
+				combine_response_time('%s/%s-response_time-%s' % (directory, experiment, type),
 						headers + ['Response time', 'Standard deviation', '25th percentile', '50th percentile', '90th percentile'],
 						servers, params_size, rep)
 
@@ -89,7 +70,7 @@ def compress_logs_clients():
 						run('tar -zcvf %s.tar.gz %s*.log README' % (experiment, experiment))
 		experiments = ['detailed', 'overall']
 		if i <= 3:
-			experiments += ['replication', 'writes'] 
+			experiments += ['replication', 'writes']
 		for experiment in experiments:
 			local('scp asl%s:logs/%s.tar.gz logs/milestone2/%s_%d.tar.gz' % (host, experiment, experiment,i))
 		i += 1
@@ -113,9 +94,9 @@ def compress_logs_middleware():
 				run('tar -zcvf %s.tar.gz %s*.log' % (e, e))
 	for e in experiments:
 		local('scp asl11:logs/%s.tar.gz logs/milestone2/%s_middleware.tar.gz' % (e, e))
-	
 
-# --------- Max throughput task ------------- 
+
+# --------- Max throughput task -------------
 
 def run_max_throughput_experiment(clients, thread_pool):
 	hosts = [2, 3, 4, 9, 10]
@@ -132,7 +113,7 @@ def run_max_throughput_experiment(clients, thread_pool):
 	memcached_ips = [12, 14, 4, 13, 5]
 	memcached_string = ''
 	for ip in memcached_ips:
-		memcached_string += '10.0.0.%d:11212 ' % ip 
+		memcached_string += '10.0.0.%d:11212 ' % ip
 	run_middleware(thread_pool, 1, memcached_string, output, std_output)
 
 	time.sleep(pause_2)
@@ -175,8 +156,8 @@ def compute_max_throughput(detailed):
 	copy_max_throughput_logs(detailed)
 
 def combine_max_throughput_all():
-	combine_max_throughput('True')	
-	combine_max_throughput('False')	
+	combine_max_throughput('True')
+	combine_max_throughput('False')
 
 def combine_max_throughput(detailed):
 	directory = get_directory(detailed)
@@ -217,7 +198,7 @@ def run_replication_experiment(servers, replication_factor, repetition): # repli
 	memcached_ips = [12, 14, 4, 13, 5, 10, 8]
 	memcached_string = ''
 	for i in range(0, servers):
-		memcached_string += '10.0.0.%d:11212 ' % memcached_ips[i] 
+		memcached_string += '10.0.0.%d:11212 ' % memcached_ips[i]
 	run_middleware(threads, replication, memcached_string, output)
 	time.sleep(pause_2)
 
@@ -296,7 +277,7 @@ def run_writes_experiment(servers, percentage, replication_factor, repetition): 
 	memcached_ips = [12, 14, 4, 13, 5, 10, 8]
 	memcached_string = ''
 	for i in range(0, servers):
-		memcached_string += '10.0.0.%d:11212 ' % memcached_ips[i] 
+		memcached_string += '10.0.0.%d:11212 ' % memcached_ips[i]
 	run_middleware(threads, replication, memcached_string, output)
 	time.sleep(pause_2)
 

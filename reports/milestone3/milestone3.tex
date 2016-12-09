@@ -1,0 +1,173 @@
+% % % % % % % % % % % % % % %
+\documentclass[11pt]{article}
+\usepackage[a4paper, portrait, margin=1in]{geometry}
+% % % % % % % % % % % % % % %
+
+
+\usepackage{fancyhdr}
+\usepackage{siunitx}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\fancypagestyle{firstpagefooter}
+{
+\lfoot{Version: 25.11.2016}
+\cfoot{}
+\rfoot{\thepage}
+}
+\cfoot{\thepage}
+
+
+\begin{document}
+
+\title{Advanced Systems Lab (Fall'16) -- Third Milestone}
+
+\author{Name: \emph{Aleksander Matusiak}\\Legi number: \emph{16-931-925}}
+
+\date{
+\vspace{4cm}
+\textbf{Grading} \\
+\begin{tabular}{|c|c|}
+\hline  \textbf{Section} & \textbf{Points} \\ 
+\hline  1 &  \\ 
+\hline  2 &  \\ 
+\hline  3 &  \\ 
+\hline  4 &  \\ 
+\hline  5 &  \\ 
+\hline \hline Total & \\
+\hline 
+\end{tabular} 
+}
+
+\maketitle
+\thispagestyle{firstpagefooter}
+\newpage
+
+\section*{Notes on writing the report}
+
+The report does not need to be extensive but it must be concise, complete, and correct. Conciseness is important  in  terms  of  content  and explanations,  focusing  on  what  has  been  done and  explanations  of the results. A long report is not necessarily a better report, especially if there are aspects that  remain  unexplained.  Completeness  implies  that  the  report  should  give  a comprehensive idea of what has been done by mentioning all key aspects of the modeling and analysis effort. Limited analysis because of flaws in the system or lack of experimental data from Milestones 1 or 2 are not  valid  arguments  for  an incomplete  report.  If  bugs  or  lack  of  data  prevent  you  from  doing  a  correct analysis, the system must be debugged and new data collected. In case the system has been modified, include a short description of the changes as an appendix.
+
+Remember  that  this is  a  report  about modeling  and  analyzing the  system you  have  designed  and  built, using  the experimental data you have collected. There is no unique way to do the report and you may choose  to  focus  on  different  aspects  of  the  system  as  long  as  you deliver a  complete analysis of  its behavior. Keep in mind that, \emph{for all queuing models in the report}, you need to explain how the the parameters of the model were determined and from which experiments the data comes from (adding a reference to the exact graph, table, etc. from the previous milestones). You have to find all system metrics that can be derived using the corresponding formulas and then match to the experimental results, explaining the similarities and differences in quantitative and qualitative terms. The calculations and the numbers you derive might need to be explained with references to the logs and sources in the previous reports. Make sure to mark these references, as well as the ones pointing to experimental results clearly. \textit{Missing parts of the above requirements might lead to significant loss of points in each section.}
+
+The report should be organized in sections as explained in the next pages, and each section should address at least the questions mentioned for each point. You might be called for a meeting in person to clarify aspects of the report or the system and to make a short presentation of the work done. By submitting the report, you  confirm  that  you  have  done  the  work  on  your  own,  the  data used comes  from  experiments  your have  done,  you  have  written  the  report  on  your  own,  and  you have  not  copied  neither text nor data from other sources.
+
+\medskip
+The milestone is worth 200 points. 
+
+
+\pagebreak
+
+
+\section{System as One Unit}\label{sec:system-one-unit}
+
+\iffalse
+Length: 1-2 pages
+
+Build an M/M/1 model of your entire system based on the stability trace that you had to run for the first milestone. Explain the characteristics and behavior of the model built, and compare it with the experimental data (collected both outside and inside the middleware). Analyze the modeled and real-life behavior of the system (explain the similarities, the differences, and map them to aspects of the design or the experiments). Make sure to follow the model-related guidelines described in the Notes!
+\fi
+
+Throughput measured by the memaslap clients was equal to 13758 operations/second. Therefore, I take arrival rate $\lambda = 13758 \textrm{ ops/s}$.
+
+For this model we take server discipline First Come First Served, with no buffer limitations. The population size is 192 clients and the system is a closed one.
+
+In M/M/1 model we have one queue and one server. As server we will consider memcached server. Since there are actually 3 memcached servers processing requests, we have to calculate the service rate accordingly.
+
+One approach to do it is to calculate the number of requests being actively processed in the middleware, which corresponds to the average parallelism in the middleware. We can then assume that the service time is average time spent in the servers divided by the number of active threads. We still need to take into the account that this time includes requests being sent over the network, but we can also treat network as a queue. Since servers have only 1 thread working the requests will partially wait in the queue of the server and partially this waiting period will be included in the time spent in the network.
+
+I had to improve the logging in my middleware (see apendix) in order to log also current numbers of busy getter threads and number of requests processed currently by setter requests (i.e. number of set requests that have been taken out of the queue but the response for them has not yet been sent to the client). This made it necessary to repeat the experiment.
+
+Looking at the middleware logs I have calculated, that an average time spent in the servers equals: $T_s = \SI{2841.63}{\micro\second}$, which is the difference between $T\_SendToClient$ and $T\_Dequeue$ (see report for milestone 1.). When it comes to number of requests on the fly I got the following results: on average 38.15 getter threads are busy processing requests and there are on average 1.05 requests in all setter threads (there are 3 of them). So, on average, there are $m = 39.21$ on the fly (sum based on more precise numbers). Based on the previous analysis we can now calculate the service rate appropriate for M/M/1 model:
+$$\mu \approx \frac{39.21}{2841.63} \cdot 10^6 \textrm{ requests/second} \approx 13892.53 \textrm{ requests/second}$$
+In order to calculate mean service rate which includes that many requests are processed in parallel, I had to find out the average number of requests being in the service. In order to do that I had to make some changes in my code (described in the appendix) i I These enables us to calculate the offered load:
+$$\rho = \frac{\lambda}{\mu} \approx \frac{13758}{13893} \approx 99.03\%$$
+The offered load is below 1, which means that the system is stable.
+
+The high utilization stems from the fact that for stability experiment I have used only 16 threads. As the experiments from second milestones have shown, for 16 threads we get worse performance than for the higher number of threads. This means that threads are mostly busy and since the high utilization of the system.
+
+It is also worth pointing out, that the average number of set requests being serviced is quite low, considering that there are 3 setter threads (one for each queue) which process requests asynchronously (one thread can process more than one requests at the same time). This is because set requests are only 1\% of all requests, so they are not many of them and although it takes longer to process them, the low number of them leads to low number of them being processed at the same time.
+
+The  probability that there are zero jobs in the system equals approximately $0.97\%$. The probability that there are $n$ jobs in the system equals approximately $p_n = 0.97\% \cdot 99.03\%^n$. We can also calculate how many requests are in system in total:
+$$E[n] = \frac{\rho}{1 - \rho} \approx{99.03\%}/{0.98\%} \approx 102.52$$
+Let me remind here that there are 192 clients. Calculated number is therefore plausible. Requests spend also significant amount of time traveling in the network between memaslap clients and middleware, which causes the calculated number of requests in the system to be a lot less than the number of clients.
+% TODO: explanation
+
+We can calculate also mean response time:
+$$E[r] = (1/\mu)/(1 - \rho) \approx \frac{1}{13893 \textrm{ requests/second} \cdot 0.97\%} \approx \SI{7451}{\micro\second}$$
+When we look at the data collected from the middleware we can see that the mean time spent in the middleware equals approximately \SI{7655}{\micro\second}.
+% TODO: explain
+%$$E[r] = \frac{1/\mu^2}{(1 - \rho)^2} \approx \frac{1/13893^2}{0.97\%^2}$$
+The 90th percentile calculated equals to : $2.3 E[r] \approx \SI{17138}{\micro\second}$. When we look at the data from middleware we can see that 90th percentile actually equals around \SI{13880}{\micro\second}, which is lower than the time calculated from the model.
+% TODO: explain
+
+We can also calculate the time spent in the queue:
+$$E[w] = \rho \frac{1/\mu}{1 - \rho} \approx 99.03\% \cdot \frac{1/13893}{0.97\%} \approx \SI{7379}{\micro\second}$$
+Mean time spent in the queue (being part of the implementation) measured by the middleware is around \SI{4768}{\micro\second}. The differences here are much more significant then overall response time. This is because the queue from the implementation does not correspond to the queue in the M/M/1 model. Requests have to wait also in the queue for each server and also spend some time in the network (which can be treated as a part of the queue, as explained above). What is more, since we have 3 servers, more requests than 1 can be processed by them in parallel, which means that the time spent in the queue measured will be even lower than this calculated.
+
+%When we look at the data collected from the middleware we can see that the mean time spent in the queue (being part of the implementations) is equal to around \SI{3203}{\micro\second}. The difference between this values stems from the fact that in our model we have one queue, which includes also waiting by the request to be handled by the thread handling network messages. As described in the report for milestone 2., this point of the system becomes at some point the bottleneck, so it's reasonable that waiting time here is also significant.
+
+\pagebreak
+
+\section{Analysis of System Based on Scalability Data}\label{sec:analysis-scalability}
+
+Length: 1-4 pages
+
+Starting from the different configurations that you used in the second milestone, build M/M/m queuing models of the system as a whole. Detail the characteristics of these series of models and compare them with experimental data. The goal is the analysis of the model and the real scalability of the system (explain the similarities, the differences, and map them to aspects of the design or the experiments). Make sure to follow the model-related guidelines described in the Notes!
+
+\section{System as Network of Queues}\label{sec:network-of-queues}
+
+Length: 1-3 pages
+
+Based on the outcome of the different modeling efforts from the previous sections, build a comprehensive network of queues model for the whole system. Compare it with experimental data and use the methods discussed in the lecture and the book to provide an in-depth analysis of the behavior. This includes the identification and analysis of bottlenecks in your system. Make sure to follow the model-related guidelines described in the Notes!
+
+\section{Factorial Experiment}\label{sec:2k-experiment}
+
+Length: 1-3 pages
+
+Design a $2^k$ factorial experiment and follow the best practices outlined in the book and in the lecture to analyze the results. You are free to choose the parameters for the experiment and in case you have already collected data in the second milestone that can be used as source for this experiment, you can reuse it. Otherwise, in case you need to run new experiments anyway, we recommend exploring the impact of request size on the middleware together with an other parameter.
+
+\pagebreak
+
+\section{Interactive Law Verification}\label{sec:interactive-law}
+
+\iffalse
+Length: 1-2 pages
+
+Check the validity of all experiments from one of the three sections in your Milestone 2 report using the interactive law (choose a section in which your system has at least 9 different configurations). Analyze the results and explain them in detail.
+\fi
+
+I will check the validity of my experiments from section 2. of the Milestone 2 report, where I was analyzing the behavior as we change replication and the number of servers. The number of clients for all configurations was equal to 210. We assume that time clients wait before submitting next request equals approximately to 0 - it is reasonable assumption since every client corresponds to one thread and processing responses and issuing requests 
+
+Below table presents the results of the experiments for different configurations as well as calculated response time. It has been calculated from the formula: $R = \frac{N}{X} - Z$, where $R$ - response time, $N = 210$ - number of clients, $X$ - throughput and $Z=\SI{0}{\micro\second}$ - waiting time for clients before submitting next request. I have also calculated derivation from the theory, which is equal to $\frac{R_e - R}{R}$, where $R_e$ is measured response time.
+\medskip
+
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline \parbox[t]{2.2cm}{\bf{Replication\\factor}} & \parbox[t]{1.8cm}{\bf{Number of \\servers}} & \parbox[t]{1.5cm}{\bf{TPS \\ \lbrack ops/s \rbrack}} & \parbox[t]{2cm}{\bf{Resp. time [us]\\(measured)}} & \parbox[t]{2.2cm}{\bf{Resp. time [us] \\(interactive law)}} & \parbox[t]{2.4cm}{\bf{Deviation \\ from theory}} \\[3ex]
+\hline	none	&	3	&	11884	&	17684	&	17670	&	0.08\%	\\
+\hline	half	&	3	&	11969	&	17590	&	17545	&	0.26\%	\\
+\hline	all	&	3	&	11641	&	18108	&	18039	&	0.38\%	\\
+\hline	none	&	5	&	12169	&	17273	&	17257	&	0.09\%	\\
+\hline	half	&	5	&	12046	&	17496	&	17433	&	0.36\%	\\
+\hline	all	&	5	&	11231	&	18773	&	18698	&	0.40\%	\\
+\hline	none	&	7	&	11817	&	17845	&	17771	&	0.42\%	\\
+\hline	half	&	7	&	11048	&	19057	&	19008	&	0.26\%	\\
+\hline	all	&	7	&	10145	&	20732	&	20701	&	0.15\%	\\
+\hline
+\end{tabular}
+\medskip
+
+As we can see from above table, the interactive response time law corresponds well to the results from the measurements. Looking at the deviation we can see that response time measured has always been higher than response time calculated using the interactive law.
+% TODO: why
+
+Little discrepancies between theory and measured values may stem from the fact that memaslap clients can have some small error margin.
+%TODO: really?
+
+\pagebreak
+
+\section*{Appendix - changes in the source code}
+
+In order to measure the number of requests being actively processed in the middleware I had to enrich my source code in 2 counters - one keeping track of number of active getter workers, the other one keeping track of set requests for which response we are waiting from the servers. With these 2 counters is connected a necessary synchronization (all getter threads have access to the first counter, all setter threads have access to the second counter), which may decrease the performance of the middleware slightly.
+% TODO: add that it doesn't influence it significantly 
+
+\end{document}

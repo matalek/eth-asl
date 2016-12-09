@@ -1,9 +1,12 @@
 python3 -c "from parse.milestone_2.parse_logs import *; "
 
 python3 -c "from parse.milestone_2.parse_logs import *; parse_middleware_logs('logs_working/detailed-breakdown/max_throughput_210_30.log', 'get')"
-python3 -c "from parse.milestone_2.parse_logs_middleware import *; print(parse_middleware_times_single('logs_working/detailed-breakdown/max_throughput_210_30.log', 'get'))" 
+python3 -c "from parse.milestone_2.parse_logs_middleware import *; print(parse_middleware_times_single('logs_working/detailed-breakdown/max_throughput_210_30.log', 'get'))"
 logs_working/detailed-breakdown/max_throughput_210_30.log
 
 python3 -c "from parse.milestone_2.parse_logs import *; plot_replication()"
 
 tar -zcvf logs/milestone2/detailed_general.tar.gz
+
+
+python3 -c "from parse.milestone_3.parse_logs_middleware import *;  print(parse_middleware_times_single('mm1.log', 'all'))"
