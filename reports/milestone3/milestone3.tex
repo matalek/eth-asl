@@ -6,10 +6,14 @@
 
 \usepackage{fancyhdr}
 \usepackage{siunitx}
+\usepackage{amsmath}
 \pagestyle{fancy}
 \fancyhf{}
 \renewcommand{\headrulewidth}{0pt}
 \renewcommand{\footrulewidth}{0pt}
+
+\usepackage{array}
+\usepackage{booktabs}
 
 \fancypagestyle{firstpagefooter}
 {
@@ -107,7 +111,7 @@ Mean time spent in the queue (being part of the implementation) measured by the 
 
 %When we look at the data collected from the middleware we can see that the mean time spent in the queue (being part of the implementations) is equal to around \SI{3203}{\micro\second}. The difference between this values stems from the fact that in our model we have one queue, which includes also waiting by the request to be handled by the thread handling network messages. As described in the report for milestone 2., this point of the system becomes at some point the bottleneck, so it's reasonable that waiting time here is also significant.
 
-\pagebreak
+\clearpage
 
 \section{Analysis of System Based on Scalability Data}\label{sec:analysis-scalability}
 
@@ -115,17 +119,115 @@ Length: 1-4 pages
 
 Starting from the different configurations that you used in the second milestone, build M/M/m queuing models of the system as a whole. Detail the characteristics of these series of models and compare them with experimental data. The goal is the analysis of the model and the real scalability of the system (explain the similarities, the differences, and map them to aspects of the design or the experiments). Make sure to follow the model-related guidelines described in the Notes!
 
+\clearpage
+
 \section{System as Network of Queues}\label{sec:network-of-queues}
 
 Length: 1-3 pages
 
 Based on the outcome of the different modeling efforts from the previous sections, build a comprehensive network of queues model for the whole system. Compare it with experimental data and use the methods discussed in the lecture and the book to provide an in-depth analysis of the behavior. This includes the identification and analysis of bottlenecks in your system. Make sure to follow the model-related guidelines described in the Notes!
 
+\clearpage
+
 \section{Factorial Experiment}\label{sec:2k-experiment}
 
+\iffalse
 Length: 1-3 pages
 
 Design a $2^k$ factorial experiment and follow the best practices outlined in the book and in the lecture to analyze the results. You are free to choose the parameters for the experiment and in case you have already collected data in the second milestone that can be used as source for this experiment, you can reuse it. Otherwise, in case you need to run new experiments anyway, we recommend exploring the impact of request size on the middleware together with an other parameter.
+\fi
+
+In the milestone 2 we have analyzed thoroughly the impact of the replication factor and impact of the writes percentage on performance of the system. We have not, however, concentrated our attention on which of these factors plays the biggest role when it comes to the performance of the system. Therefore, for this factorial experiment I have decided to investigate the impact of two factors: replication factor and percentage of writes requests. This enabled me to reuse data from the milestone 2, task "Effect of Writes" (using logs {\it writes\_general} from the previous report). We will look at the behavior of 5 servers (since for this number of servers we have chosen optimal number of threads - see report for milestone 2, task "Maximum Throughput").
+
+We will present here $2^kr$ factorial design experiment with repetitions, where $k = 2$ (2 parameters) and $r = 3$ (3 repetitions for each configuration).
+
+Let $A$ be the percentage of writes parameter and $B$ be the replication factor parameter. We will look at the extreme values for these two parameters - 1\% and 10\% as writes percentage; none and all as replication factor. Let us now define two variable $x_A$ and $x_B$ as follows:
+\begin{gather*}
+x_A = 
+\begin{cases}
+-1 \qquad \text{ if writes percentage equals 1\%} \\ 
+\;\;\;1 \qquad \text{ if writes percentage equals 10\%} \\ 
+\end{cases}
+\end{gather*}
+
+\begin{gather*}
+x_B = 
+\begin{cases}
+-1 \qquad \text{ if replication factor is none} \\ 
+\;\;\;1 \qquad \text{ if replication factor is all} \\ 
+\end{cases}
+\end{gather*}
+
+As the metric for measuring performance we choose aggregated throughput. Selecting additional metric - response time - would be redundant since in close system according to interactive response time law values to these 2 parameters are strictly corresponding.
+
+We can now regress on $x_A$ and $x_B$ the performance of the system using a nonlinear regression model of the form:
+$$y = q_0 + q_Ax_A + q_Bx_B + q_{AB}x_Ax_B$$
+In order to calculate the coefficients, we will use sign table presented in the book.
+\medskip
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline $I$ & $A$ & $B$ & $AB$ & $y$ &Mean $\bar{y}$ \\
+\hline	1	&	-1	&	-1	&	1	&	(	12833	,	12684	,	12974	) &	12830	\\\hline	1	&	1	&	-1	&	-1	&	(	12732	,	12038	,	12121	) &	12297	\\\hline	1	&	-1	&	1	&	-1	&	(	12140	,	12667	,	12533	) &	12447	\\\hline	1	&	1	&	1	&	1	&	(	10582	,	11077	,	10188	) &	10616	\\\hline	48190	&	-2364	&	-2065	&	-1298	&							&	Total	\\\hline	12047	&	-591	&	-516	&	-324	&							&	Total / 4	\\
+\hline
+\end{tabular}
+\end{center}
+\medskip
+
+From the table above we now see calculated effects ($q$ coefficients): $q_0 \approx 12047$, $q_A \approx -591$, $q_B \approx -516$, $q_{AB} \approx -324$.
+
+We can now use the model to estimate the experimental errors. Using the effects calculated above we have:
+$$\hat{y_i} =  q_0 + q_Ax_{Ai} + q_Bx_{Bi} + q_{AB}x_{Ai}x_{Bi},$$
+where $\hat{y_i}$ is the estimated performance when factors $A$ and $B$ are at levels $x_{Ai}$ and $x_{Bi}$ respectively.
+
+The error for $j$th replication of $i$th experiment is given by the formula:
+$$e_{ij} = y_{ij} - \hat{y_i} = y_{ij} -  (q_0 + q_Ax_{Ai} + q_Bx_{Bi} + q_{AB}x_{Ai}x_{Bi})$$
+
+We can calculate the error looking at the data collected from the experiment. It is worth noticing here, that $\hat{y_i}$ is equal to the mean of values from $i$th experiment. The results are presented in the following table:
+\medskip
+
+\begin{center}
+\begin{tabular}{@{}|c|cccc|c|ccc|ccc|}
+\hline & \multicolumn{4}{c|}{Effect} & \parbox[t]{2.1cm}{Estimated performance} & \multicolumn{3}{c|}{Measured performance} & \multicolumn{3}{c|}{Errors} \\
+\hline & $I$ & $A$ & $B$ & $AB$ & & & & & & & \\
+\hline i & 12047	&	-591	&	-516	&	-324 & $\hat{y_i} $ & $y_{i1}$ & $y_{i2}$ & $y_{i3}$	& $e_{i1}$ & $e_{i2}$ & $e_{i3}$ \\
+\hline	1	&	1	&	-1	&	-1	&	1	&	12830	&	12833	&	12684	&	12974	&	3	&	-146	&	144	\\\hline	2	&	1	&	1	&	-1	&	-1	&	12297	&	12732	&	12038	&	12121	&	435	&	-259	&	-176	\\\hline	3	&	1	&	-1	&	1	&	-1	&	12447	&	12140	&	12667	&	12533	&	-307	&	220	&	86	\\\hline	4	&	1	&	1	&	1	&	1	&	10616	&	10582	&	11077	&	10188	&	-34	&	461	&	-428	\\
+\hline
+\end{tabular}
+\end{center}
+\medskip
+
+We can now calculate the sum of the squared errors - $SSE$ - which we will use later to estimate the variance of the errors:
+$$SSE = \sum_{i = 1}^{2^2} \sum_{j = 1}^3 e_{ij}^2 = 876248$$
+
+Now we want to calculate the allocation of variation. The total variation or Total Sum of Squares is equal to:
+$$SST = \sum_{i, j} (y_{ij} - \bar{y})^2$$
+and can be divided into four parts (which is proved in the book):
+$$ \sum_{i, j} (y_{ij} - \bar{y})^2 = 2^2\cdot 3 \cdot q_A^2 + 2^2\cdot 3 \cdot q_B^2 + 2^2\cdot 3 \cdot q_{AB}^2 + \sum_{i, j} e_{ij}^2$$
+$$SST = SSA + SSB + SSAB + SSE,$$
+where $SS*$ corresponds to the appropriate part from the formula above. Let us now calculate these values based on experimental results (values rounded to the nearest integer):
+$$SS0 = 2^2\cdot 3 \cdot q_0^2 = 1741682980 $$
+$$SSA = 2^2\cdot 3 \cdot q_A^2 = 4192554$$
+$$SSB = 2^2\cdot 3 \cdot q_B^2 = 3198169$$
+$$SSAB = 2^2\cdot 3 \cdot q_{AB}^2 = 1262954$$
+
+Now we can calculate $SST$:
+$$SST = SSA + SSB + SSAB + SSE = 9529925$$
+That enables us to divide the total variation into to parts. When we mark variation as $V$ variable with appropriate prefix, we have:
+$$VA =  4192554/ 9529925 \approx 43.99\%$$
+$$VB =  3198169 / 9529925 \approx 33.56\%$$
+$$VAB =  1262954 / 9529925 \approx 13.25\%$$
+$$VE =  876248 / 9529925 \approx 9.19\%$$
+We can therefore conclude that facotr $A$ - percentage of writes - explains around 44\% of variation and is the most significant factor. Factor $B$ - replication factor - explains  around $34\%$ of the variation, interaction $AB$ - around 13\%. The remaining around 9\% is unexplained and is attributed to errors.
+%TODO analyze in context of the system
+
+Both of the parameters analyzed in this experiment cause the decrease in the performance as we increase them. Both these parameters increase the number of set requests that have to be sent to the memcached servers. However, increasing the writes percentage also decreases the reads percentage. Above analysis has shown that most impact can be attributed to increasing the writes percentage rather than increasing the replication factor, although the difference is not that big.
+
+These results can be explained by a couple of factors. Firstly, by increasing the number of writes from 1\% to 10\% we increase the number of set requests by 10 times. Increasing replication factor from none to all for 5 servers means increasing the number of set requests sent to memcached servers 5 times. For $A$ factor we then increase the number of requests twice as much as for the $B$ factor, which can lead to more significant decrease in performance.
+
+Secondly, in the ideal system increasing replication factor should have no or very little impact on the performance of the middleware (as explained in the report for milestone 2). On the other hand, increasing the number of setter requests can, also theoretically, have a significant impact on the performance of the system. This is because for each server we have only one thread processing set requests. When we increase the number of threads by 10 times, this thread will have to serve 10 times more requests and more requests will simply have to wait in the queue, which will decrease the performance of the system. Although in a real world system replication facto has an effect on the system performance, it should be less significant than increasing the writes percentage. 
+
+Let us also analyze impact of the interaction between factors. It is not as significant as one could expect. In the milestone 2 we have shown that the decrease in the performance as we increase the writes percentage becomes significant with replication factor all, whereas for replication factor none it is not so significant. But also similarly we can see that it is only for 10\% writes that we can notice significant decrease in performance as we go from no replication to replication to all. Conducted calculations enable us to say then that it's mostly the influence of each factor separately that causes the significant decrease for the worst-case scenario (10\% writes with replication to all servers). This might be explained by the fact that these factors cause decrease in performance differently. Increasing replication makes us more prone to network latencies and therefore server time for requests is higher which leads to higher response time. On the other hand, increasing writes percentage causes setter worker to have more work to do and increases the ration of slower-processed requests. These ways of decreasing the performance are not that dependent on each other, which is confirmed by the factorial analysis conducted above.
 
 \pagebreak
 
@@ -157,11 +259,7 @@ Below table presents the results of the experiments for different configurations
 \end{tabular}
 \medskip
 
-As we can see from above table, the interactive response time law corresponds well to the results from the measurements. Looking at the deviation we can see that response time measured has always been higher than response time calculated using the interactive law.
-% TODO: why
-
-Little discrepancies between theory and measured values may stem from the fact that memaslap clients can have some small error margin.
-%TODO: really?
+As we can see from above table, the interactive response time law corresponds well to the results from the measurements. Looking at the deviation we can see that response time measured has always been higher than response time calculated using the interactive law. This can be explained by a couple of factors. Firstly, during our experiments we are dealing with tail distribution, which means that spikes in the plots are usually connected with higher response times. This is because we are dealing with the distributed environment in the cloud, where network instability can cause these higher request times. Secondly, we do not know exactly how logging mechanism works in memaslap. It can be the case that the client after receiving response immediately sends a new request and after that it logs receiving of the response. What is more, data from the client can have some small error margin, especially because we are taking into account data only from the part of the running time (after stability reached and before cool down). This might be the cause of these differences. However, these discrepancies are rather small and do not undermine the validity of my experiments.
 
 \pagebreak
 
