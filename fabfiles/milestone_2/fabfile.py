@@ -3,10 +3,6 @@ from fabric.context_managers import settings
 from fabfiles.common import *
 from parse.milestone_2.parse_logs import *
 
-def start_vms():
-	for host in range(1, 12):
-		local('azure vm start FOR_ASL foraslvms%d &' % host)
-
 def copy_key():
 	for host in range(1, 11):
 		with settings(host_string='asl%d' % host):

@@ -51,6 +51,11 @@ def stop_memaslap_many(cnt=3):
 	for i in range(0, cnt):
 		stop_memaslap('asl' + str(servers[i]))
 
+
+def start_vms():
+	for host in range(1, 12):
+		local('azure vm start FOR_ASL foraslvms%d &' % host)
+
 def stop_vms():
 	for host in range(1, 12):
 		local('azure vm deallocate FOR_ASL foraslvms%d &' % host)

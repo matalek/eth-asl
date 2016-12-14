@@ -3,7 +3,52 @@ import math
 import statistics as st
 
 start_time = 60
-end_time = 1740
+end_time = 120
+
+def get_params(fbase, filename):
+	data = filename
+	data = data.replace(fbase + '_', '')
+	data = data.replace('.log', '')
+	data = data.replace('[', '_')
+	data = data.replace(']', '')
+	data = data.split('_')
+	return data
+
+def write_to_file(name, content):
+	fres = 'logs/' + name + '.log'
+	write_to_named_file(fres, content)
+
+def write_to_named_file(fname, content):
+	with open(fname, 'w+') as f:
+		for val in content:
+			i = 0
+			for el in val:
+				f.write(el)
+				i += 1
+				if i != len(val):
+					f.write(',')
+			f.write('\n')
+
+headers_response_time_end = ['Response time', 'Standard deviation', 'Bucket distribution (value, size)']
+
+def parse_throughput(fbase, headers, directory='./logs'):
+	res = []
+	res2 = []
+	for filename in os.listdir(directory):
+		if filename.startswith(fbase + '_'):
+			data = get_params(fbase, filename)
+			(stat, general) = parse_throughput_single(os.path.join(directory, filename))
+			res.append(data + stat)
+			general = list(map(lambda x : str(x), general))
+			res2.append(data + general)
+		else:
+			continue
+
+	res = [headers] + res
+	write_to_file(fbase, res)
+
+	# res2 = list(map(lambda x : str(x), res2))
+	write_to_file(fbase + '-values', res2)
 
 def parse_throughput_single(fname):
 	print(fname)
@@ -29,7 +74,7 @@ def parse_throughput_single(fname):
 			i += 1
 		throughput = (throughput * end_time - till_stability_throughput * start_time) / (end_time - start_time)
 
-		return [str(throughput), str(st.pstdev(res))]
+		return ([str(throughput), str(st.pstdev(res))], res)
 
 
 def parse_response_time_single(fname, type='Total'):
@@ -74,3 +119,12 @@ def parse_response_time_single(fname, type='Total'):
 				- math.pow(till_stability_std, 2) * start_time) / (end_time - start_time))
 
 		return [str(response_time), str(response_time_std)] + perc
+
+def parse_replication():
+	params_header = ['Replication factor', 'Number of servers', 'Repetition']
+	parse_throughput('improved-replication', params_header + ['TPS', 'Standard deviation'])
+	# parse_response_time('improved-replication', 'improved-replication-response_time',
+	# 			params_header + headers_response_time_end)
+	# for type in ['Get', 'Set']:
+	# 	parse_response_time('improved-replication', 'improved-replication-response_time-%s' % type.lower(),
+	# 			params_header + headers_response_time_end, type=type)

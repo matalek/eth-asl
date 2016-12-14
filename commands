@@ -10,3 +10,7 @@ tar -zcvf logs/milestone2/detailed_general.tar.gz
 
 
 python3 -c "from parse.milestone_3.parse_logs_middleware import *;  print(parse_middleware_times_single('mm1.log', 'all'))"
+
+python3 -c "from parse_logs_vms import *; parse_throughput_single('logs/mm1.log')"
+
+python3 -c "from parse.milestone_3.parse_logs import *; count_max_tps('mm1-tps.log')"
