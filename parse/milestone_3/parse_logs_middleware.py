@@ -3,7 +3,7 @@ import os
 import math
 import statistics as st
 
-stats_cnt = 3
+stats_cnt = 4
 times_cnt = 6
 
 # per_values = [25, 50, 90]
@@ -176,3 +176,19 @@ def combine_replication_repetitions():
 	combine_repetitions('improved-replication-get')
 	combine_repetitions('improved-replication-set')
 	combine_repetitions('improved-replication-all')
+
+# --------- Effect of writes task -------------
+
+def parse_writes_middleware():
+	middleware_headers = ['Writes percentage', 'Number of servers', 'Replication factor'] + stats_headers()
+	for i in range(1, repetitions + 1):
+		parse_middleware_times('improved-writes', 'get', middleware_headers, i)
+		parse_middleware_times('improved-writes', 'set', middleware_headers, i)
+		parse_middleware_times('improved-writes', 'all', middleware_headers, i)
+
+	combine_writes_repetitions()
+
+def combine_writes_repetitions():
+	combine_repetitions('improved-writes-get', params_size=3)
+	combine_repetitions('improved-writes-set', params_size=3)
+	combine_repetitions('improved-writes-all', params_size=3)

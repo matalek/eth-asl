@@ -128,3 +128,14 @@ def parse_replication():
 	# for type in ['Get', 'Set']:
 	# 	parse_response_time('improved-replication', 'improved-replication-response_time-%s' % type.lower(),
 	# 			params_header + headers_response_time_end, type=type)
+
+
+def parse_writes():
+	params_header = ['Replication factor', 'Number of servers', 'Repetition']
+	parse_throughput('improved-writes', params_header + ['TPS', 'Standard deviation'])
+	# parse_response_time('improved-writes', 'improved-writes-response_time',
+	# 			params_header + headers_response_time_end)
+	# for type in ['Get', 'Set']:
+	# 	parse_response_time('improved-writes', 'improved-writes-response_time-%s' % type.lower(),
+	# 			params_header + headers_response_time_end, type=type)
+

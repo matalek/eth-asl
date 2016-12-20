@@ -14,3 +14,10 @@ python3 -c "from parse.milestone_3.parse_logs_middleware import *;  print(parse_
 python3 -c "from parse_logs_vms import *; parse_throughput_single('logs/mm1.log')"
 
 python3 -c "from parse.milestone_3.parse_logs import *; count_max_tps('mm1-tps.log')"
+
+python3 -c "from parse.milestone_3.parse_logs import *; calculate_util_max('./logs_working/improved-replication', 2)"
+python3 -c "from parse.milestone_3.parse_logs import *; calculate_util_max('./logs_working/improved-writes', 3)"
+
+python3 -c "from parse.milestone_3.parse_logs import *; calculate_stats('./logs_working/improved-replication-util.log')"
+python3 -c "from parse.milestone_3.parse_logs import *; calculate_stats('./logs_working/improved-writes-util.log', False)"
+python3 -c "from parse.milestone_3.parse_logs import *; calculate_stats('./logs_working/improved-writes-util.log')"

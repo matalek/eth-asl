@@ -214,3 +214,38 @@ def run_writes_experiments():
 					run_writes_experiment(servers, percentage, replication, repetition)
 
 
+
+def compute_writes_middleware():
+	# local('scp parse/milestone_3/parse_logs_vms.py asl11:~')
+	local('scp parse/milestone_3/parse_logs_middleware.py asl11:~')
+	with settings(host_string='asl11'):
+		run('python3 -c "from parse_logs_middleware import *; parse_writes_middleware()"')
+
+def copy_writes_middleware_logs():
+	local('scp asl11:logs/improved-writes-*.log ./logs_working/')
+
+def compute_writes():
+	copy_parse(3)
+	for host in [2, 3, 4]:
+		with settings(host_string='asl%d' % host):
+			run('python3 -c "from parse_logs_vms import *; parse_writes()"')
+	copy_writes_logs()
+
+def combine_writes():
+	combine_logs('improved-writes', ['Replication factor', 'Number of servers', 'Repetition'], response_time=False, servers=3, params_size=4, rep=True, types=True)
+	combine_max_tps('./logs_working/improved-writes-values', servers=3, params_size=4)
+	# combine_logs('improved-writes', ['Replication factor', 'Number of servers', 'Repetition'], response_time=True, servers=3, params_size=3, rep=True, types=True)
+	combine_vms_repetitions('improved-writes', ['Replication factor', 'Number of servers'], params_size=3, is_time=False)
+	# combine_vms_repetitions('improved-writes-response_time', ['Replication factor', 'Number of servers'], params_size=2)
+	# for type in ['get', 'set']:
+	# 	combine_vms_repetitions('improved-writes-response_time-%s' % type, ['Replication factor', 'Number of servers'], params_size=2)
+
+def copy_writes_logs():
+	hosts = [2, 3, 4]
+	for i in range(0, len(hosts)):
+		local('scp asl%s:logs/improved-writes.log ./logs_working/improved-writes_%d.log' % (hosts[i], i + 1))
+		local('scp asl%s:logs/improved-writes-values.log ./logs_working/improved-writes-values_%d.log' % (hosts[i], i + 1))
+		# local('scp asl%s:logs/improved-writes-response_time.log ./logs_working/improved-writes-response_time_%d.log' % (hosts[i], i + 1))
+		# for type in ['get', 'set']:
+		# 	local('scp asl%s:logs/improved-writes-response_time-%s.log ./logs_working/improved-writes-response_time-%s_%d.log' % (hosts[i], type, type, i + 1))
+
