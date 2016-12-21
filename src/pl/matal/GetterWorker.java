@@ -12,6 +12,9 @@ import java.net.Socket;
  * Class representing thread forwarding get requests.
  */
 public class GetterWorker extends Worker<GetRequestQueue, GetRequest> {
+    private static int activeWorkers;
+    private final static Object lock = new Object();
+
     private PrintWriter out;
     private BufferedReader in;
 
@@ -24,6 +27,7 @@ public class GetterWorker extends Worker<GetRequestQueue, GetRequest> {
         while (true) {
             GetRequest request = queue.get();
             request.setTime(Request.DEQUEUE_TIME);
+            startActive();
             try {
                 handleRequest(request);
             } catch (IOException e) {
@@ -52,6 +56,7 @@ public class GetterWorker extends Worker<GetRequestQueue, GetRequest> {
             request.setSuccessFlag(false);
         }
         sendClientResponse(request, serverResponse);
+        stopActive();
         logRequest(request);
     }
 
@@ -67,5 +72,27 @@ public class GetterWorker extends Worker<GetRequestQueue, GetRequest> {
             }
         }
         return serverResponse.toString();
+    }
+
+    private void startActive() {
+        synchronized (lock) {
+            activeWorkers++;
+        }
+    }
+
+
+    private void stopActive() {
+        synchronized (lock) {
+            activeWorkers--;
+        }
+    }
+
+
+    public static int getActiveWorkers() {
+        int res;
+        synchronized (lock) {
+            res = activeWorkers;
+        }
+        return res;
     }
 }

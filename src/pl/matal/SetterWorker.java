@@ -15,6 +15,8 @@ import java.util.Set;
  * Class representing thread forwarding set and delete requests.
  */
 public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
+    private static int activeRequests;
+    private final static Object lock = new Object();
 
     private Selector selector;
     private SocketChannel[] serverChannels;
@@ -37,6 +39,7 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
                 SetRequest request = queue.getNoBlock();
                 if (request != null) {
                     request.setTime(Request.DEQUEUE_TIME);
+                    startActive();
                     handleRequest(request);
                 }
             } catch (IOException e) {
@@ -130,5 +133,27 @@ public class SetterWorker extends Worker<SetRequestQueue, SetRequest> {
             }
         }
         return -1;
+    }
+
+    private void startActive() {
+        synchronized (lock) {
+            activeRequests++;
+        }
+    }
+
+
+    public void stopActive() {
+        synchronized (lock) {
+            activeRequests--;
+        }
+    }
+
+
+    public static int getActiveRequests() {
+        int res;
+        synchronized (lock) {
+            res = activeRequests;
+        }
+        return res;
     }
 }

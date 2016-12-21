@@ -72,6 +72,7 @@ public class ResponseQueue {
                 clientResponse = request.getErrorMessage();
             }
             worker.sendClientResponse(request, clientResponse + "\n");
+            worker.stopActive();
             worker.logRequest(request);
         } catch (IOException e) {
             e.printStackTrace();

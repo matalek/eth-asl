@@ -60,7 +60,19 @@ public abstract class Request {
         long tMw = instrumentationTimes[SEND_TO_CLIENT_TIME] - instrumentationTimes[RECEIVE_FROM_CLIENT_TIME];
         long tQueue = instrumentationTimes[DEQUEUE_TIME] - instrumentationTimes[ENQUEUE_TIME];
         long tServer = instrumentationTimes[RECEIVE_FROM_SERVER_TIME] - instrumentationTimes[SEND_TO_SERVER_TIME];
-        return type + " " + tMw + " " + tQueue + " " + tServer + " " + (successFlag ? 1 : 0);
+        long tHash = instrumentationTimes[ENQUEUE_TIME] - instrumentationTimes[RECEIVE_FROM_CLIENT_TIME];
+        String res = type + " " + tMw + " " + tQueue + " " + tServer + " " + tHash + " " + (successFlag ? 1 : 0);
+//        int[] times = {RECEIVE_FROM_CLIENT_TIME, ENQUEUE_TIME, DEQUEUE_TIME, SEND_TO_SERVER_TIME,
+//                RECEIVE_FROM_SERVER_TIME, SEND_TO_CLIENT_TIME};
+//        for (int time : times) {
+//            res += " " + instrumentationTimes[time];
+//        }
+        if (getType() == TYPE_GET) {
+            res += " " + GetterWorker.getActiveWorkers();
+        } else {
+            res += " " + SetterWorker.getActiveRequests();
+        }
+        return res;
     }
 
     public void setTime(int timeNumber, long time) {
