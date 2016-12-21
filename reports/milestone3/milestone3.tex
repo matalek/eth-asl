@@ -7,6 +7,7 @@
 \usepackage{fancyhdr}
 \usepackage{siunitx}
 \usepackage{amsmath}
+\usepackage{hyperref}
 \pagestyle{fancy}
 \fancyhf{}
 \renewcommand{\headrulewidth}{0pt}
@@ -305,7 +306,7 @@ As we increase number of servers, the ration of service time to waiting time inc
 
 %As we increase replication factor and writes percentage (together or separately) the ratio between expected service time and expected waiting time is usually decreasing (apart from one case, when it doesn't change significantly). 
 
-\subsection{Conclusion}
+\subsection{Conclusions}
 As I have shown in my analysis, M/M/m model do not correspond well to the implemented system and do not account for the whole parallelization of the system. As we scale our system (increase the number of servers), the model starts to better approximate the real behavior of the system. This is because we increase the parallelism of the model, we also increase the parallelism for our implementation, but the limitation in the number of cores prevent us to increase this parallelism as much as we would like to (if we wanted to maximize the performance of our middleware).
 
 It is also worth pointing out here that we have created models that combine set and get. Both of these type of requests have different statistics and are processed in the different way. However, such simple model as M/M/m would be unable to include these different ways of processing requests. A proper distinction between these types will be introduced in the next section.
@@ -314,10 +315,60 @@ It is also worth pointing out here that we have created models that combine set 
 
 \section{System as Network of Queues}\label{sec:network-of-queues}
 
+\iffalse
 Length: 1-3 pages
 
 Based on the outcome of the different modeling efforts from the previous sections, build a comprehensive network of queues model for the whole system. Compare it with experimental data and use the methods discussed in the lecture and the book to provide an in-depth analysis of the behavior. This includes the identification and analysis of bottlenecks in your system. Make sure to follow the model-related guidelines described in the Notes!
+\fi
+In order to reflect the whole parallelism available in the middleware it's necessary to expose all the components that can process the requests in parallel. For these purpose network of queues fits quite well.
 
+In this section I have analyzed the behavior of the system under extreme conditions - 7 servers, replication to all servers and 10\% of writes. In order to analyze the network I have used Mean Value Analysis presented in Chapter 36. of the book. In order to run an appropriate algorithm to solve the model I have used Java Modelling Tools\footnote{\url{http://jmt.sourceforge.net}}, more precisely its JMVA module. It enabled me to achieve carefully calculated statics of my system. For load dependent devices this tool, however, does not support multiple classes (get and set requests). Therefore I had to provide this tool with 2 different models, which will correspond to sub-models of my queueing network model corresponding to 2 types of requests.
+
+\subsection{General model description}
+
+I have created a closed queueing network, which means that the clients are also a part of the system. This enabled me to use MVA technique presented in Chapter 36. I have modeled clients and traveling of requests through the network between clients and the middleware as a delay center with service time equal to difference in mean response time measured by memaslap clients and mean time spent in the middleware. Therefore, I take $Z=0$ as a think time for clients (JMT does not allow to input this time). In my model there is one accepting thread which takes the requests from the clients and distributes them between the queues for get and sets assigned to each memcached server. 
+
+The queues for getter and setter workers will enclose appropriate processing by the memcached servers. Reasons for that are explained in the section \ref{sec:bottleneck}.
+
+\subsection{Get requests sub-model}
+
+For this sub-model I have used 189 clients (on average 90\% clients out of 210 send get requests). I model getter worker as M/M/30 queue - they are 30 threads ready to process the request. They are 7 such queues and for each of them we have number of visits to it equal $\frac{1}{7}$ (1 in 7 requests visits this device).
+% TODO: maybe some more explanation for that. 
+Based on the middleware logs I take service time for accepting thread equal to ...
+% TODO: put data here
+Since I model get queues as M/M/30 model, I have to consider these devices as load dependent centers with service rate depending on the number of jobs in the device: $\mu(j) = T_s / \min(j, 30)$, where $T_s = $
+% TODO: put value
+is mean time spent in the servers calculated based on the middleware logs. 
+For the network delay center I take service time (calculated as described above) equal to
+% TODO : data
+
+
+
+It must be pointed out here that waiting time predicted by the model is very small, but the queue time measured by the middleware is quite big.
+%TODO: maybe even 0?
+This is because in our model we have 30 processing units for each server and with on average 189 clients sending get requests, so 27 clients per server. In M/M/m model we assume that when a job comes and there is one processing unit free, it isn't placed inside the queue but rather directly passed to the processing unit. So with only 27 clients sending request a request should almost never get queued (assuming good perfect balancing). In our case situation is different - each request is enqueued even when some threads are inactive and waiting for new jobs. What is more, in M/M/m model we have an assumption that processing units are independent one of each other and they can all work at the same time. However, this is not the case for our middleware. We have only 8 available cores and 218 threads running, so it's quite obvious that they all can't run at the same time. Getter workers are synchronous and they do not require processing time for the whole duration of processing the requests (since they are then being processed ant transported outside of middleware). But still, hardware limitations for number of threads running in parallel at the same time prevent getter workers to take out requests from the queue as efficiently as assumed by the model.
+
+We can also see that the difference between measured response time and calculated response time is approximately equal to the measured queue time, which shows that predicted value quite well corresponds to the measured value.
+
+
+\subsection{Set requests sub-model}
+
+In order to model setter workers for each memcached server / queue inside the middleware for set requests, I have considered two queues connected with each other. First one I model as M/M/1 queue and it corresponds to dequeueing the set requests and initiating the process of forwarding them to the memcached server. The requests then go to the queue I model as M/M/3 which corresponds to asynchronously processing these requests and forwarding them to memcached servers. Another solution would be to treat the second queue as a delay center (M/M/$\infty$), which would correspond to theoretically unlimited number of set requests processed at the same time. However, then it would be impossible to reason about setter workers being the bottleneck of the system (since delay centers can have utilization over 1 and cannot be a bottleneck of the system - see the book). Since they are 21 clients usually sending set requests, which corresponds to 3 requests per server, I have modeled this queue as M/M/3, which will enable me to compare utilization of this component with other components in the system.
+
+\subsection{Bottleneck analysis}
+\label{sec:bottleneck}
+
+From above analysis can be clearly seen that the bottleneck of the system are getter workers. However, it's necessary to remind here that this threads contain also processing time of the memcached server. In our model we treat memcached servers as blackboxes and their service is included in the getter workers processing. I have decided to do that because of 2 reasons. Firstly, we do not have enough data to model the exact behavior of memcached servers. Our only logs which could potentially be used to calculate memcached service time are times spent in the server measured by the middleware. However, these times include also network time and, as explained in two previous section, cannot be use to estimate properly service time of memcached servers (since servers are not busy all the time). What is more, measured servers time for threads already includes memcached server processing time, so it would be difficult to calculate the actual time spent in service for the getter thread.
+
+Based on the outcome of previous sections, as well as results of previous milestones, we can conclude that it is indeed processing by getter workers in the middleware that is the bottleneck of our system, not memcached servers. Number of requests that reach the servers is 48 (per one iteration of requests sent from the clients) and this number is very small. In milestone 1 for this number of clients we still saw a significant increase in the performance of memcached servers - they became saturated at around 96 clients, so twice the number we have. What is more, as we increased the number of servers in the experiments for previous milestone, we have noticed that the server time was increasing, even though then load on each memcached server was decreasing. This was because we have introduced more overhead on the middleware and slowed it down. This indicates that the bottleneck of the whole system was inside the middleware, not on the memcached servers side.
+
+It must be pointed here that utilization of the accepting thread turned out to be smaller than this of getter workers, so according to the model the accepting thread is not the bottleneck of the system for get requests, neither it is for set requests (there the utilization is very small). However, in previous milestones, based on the experimental results, I have concluded that the bottleneck for get requests is this thread. I have based this result on the fact that as we increase number of servers (from 3 to 5 and from 3 to 7) we can notice decrease in the middleware time, but the response time changes very little. Discrepancies between these behavior and the model can be explained by several factors. Firstly, we cannot precisely calculate the service time of the accepting thread. We can measure the time it takes the accepting thread to process incoming request, but we cannot measure the time spent by the accepting threads between finishing processing one request and starting to process another one already waiting in the queue. This is because of only 8 cores available in our system - accepting thread cannot be granted processing time all the time. Since accepting thread waits for next requests in a blocking way, even though there is another response waiting, the thread won't be granted processing time. We do not measure this time and because of 218 threads running our middleware, this time can be significant. What is more, incoming requests have to also be processed by the operating system. We don't know exactly in what way is that done (in parallel or sequentially) and how much time it takes. Since accepting thread handles big number of requests, even small differences in the service time can result in the change of utilization of system components. This explains discrepancies between the model predictions and observable behavior.
+
+When we look at the set requests in isolation we can conclude that it's setter workers that are the bottleneck for them. However, they have significantly smaller utilization than getter workers, so setter workers can't be considered as a bottleneck of the system. This is because number of set requests per one server/queue is pretty small (we have on average 21 clients sending set requests, so only 3 requests per server/queue). Setter workers are asynchronous so they can process couple of requests at the same time. These factors contribute to the fact that, although response time for set requests is higher than this for get requests, setter workers are not the bottleneck of the system since they can process several requests without much problem.
+
+
+\subsection{Conclusions}
+Network of Queues model better corresponds to reality than models described in the previous sections. However, it doesn't take into consideration limited resources of our middleware. While running 218 threads on only 8-core processor it's impossible to make every component of our network run at its full performance. Therefore, they are some discrepancies between the model and reality, especially when it comes to the waiting time.
 
 
 \clearpage
@@ -468,5 +519,7 @@ As we can see from above table, the interactive response time law corresponds we
 
 In order to measure the number of requests being actively processed in the middleware I had to enrich my source code in 2 counters - one keeping track of number of active getter workers, the other one keeping track of set requests for which response we are waiting from the servers. With these 2 counters is connected a necessary synchronization (all getter threads have access to the first counter, all setter threads have access to the second counter), which may decrease the performance of the middleware slightly.
 % TODO: add that it doesn't influence it significantly 
+
+%TODO: add for section 3
 
 \end{document}
