@@ -21,3 +21,7 @@ python3 -c "from parse.milestone_3.parse_logs import *; calculate_util_max('./lo
 python3 -c "from parse.milestone_3.parse_logs import *; calculate_stats('./logs_working/improved-replication-util.log')"
 python3 -c "from parse.milestone_3.parse_logs import *; calculate_stats('./logs_working/improved-writes-util.log', False)"
 python3 -c "from parse.milestone_3.parse_logs import *; calculate_stats('./logs_working/improved-writes-util.log')"
+
+python3 -c "from parse_logs_vms import *; parse_mm1(1)"
+
+python3 -c "from parse.milestone_3.parse_logs import *; combine_mm1()"

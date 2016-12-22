@@ -139,3 +139,34 @@ def parse_writes():
 	# 	parse_response_time('improved-writes', 'improved-writes-response_time-%s' % type.lower(),
 	# 			params_header + headers_response_time_end, type=type)
 
+def parse_mm1(vm_number):
+	fname = 'logs/mm1.log'
+	data = []
+	with open(fname, 'r') as fh:
+		lines = fh.readlines()
+		i = 0
+		time = 1
+		while i < len(lines):
+			line = lines[i]
+			if line.find('Total Statistics') != -1:
+				if line.find('Total Statistics (') == -1:
+					i += 2
+					line = lines[i].split()
+					data.append([str(time * 10), line[3], line[8], line[9]])
+					time += 1
+				else:
+					# Total average response time and std
+					i += 3
+					response_time = lines[i].split()[1]
+					i += 1
+					response_time_std = lines[i].split()[1]
+			i += 1
+	# For whole experiment
+	pat = 'TPS: '
+	start = line.find(pat) + len(pat)
+	end = line[start:].find(' ')
+	tps = line[start:start+end]
+	data.append(['Total', tps, response_time, response_time_std])
+	data = [['Time', 'TPS', 'Response time', 'Response time standard deviation']] + data
+	write_to_named_file('logs/mm1_parsed_%d.log' % vm_number, data)
+

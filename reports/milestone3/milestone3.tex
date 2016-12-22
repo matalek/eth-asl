@@ -3,7 +3,8 @@
 \usepackage[a4paper, portrait, margin=1in]{geometry}
 % % % % % % % % % % % % % % %
 
-
+\usepackage{graphicx}
+\usepackage{caption}
 \usepackage{fancyhdr}
 \usepackage{siunitx}
 \usepackage{amsmath}
@@ -58,6 +59,7 @@
 \thispagestyle{firstpagefooter}
 \newpage
 
+\iffalse
 \section*{Notes on writing the report}
 
 The report does not need to be extensive but it must be concise, complete, and correct. Conciseness is important  in  terms  of  content  and explanations,  focusing  on  what  has  been  done and  explanations  of the results. A long report is not necessarily a better report, especially if there are aspects that  remain  unexplained.  Completeness  implies  that  the  report  should  give  a comprehensive idea of what has been done by mentioning all key aspects of the modeling and analysis effort. Limited analysis because of flaws in the system or lack of experimental data from Milestones 1 or 2 are not  valid  arguments  for  an incomplete  report.  If  bugs  or  lack  of  data  prevent  you  from  doing  a  correct analysis, the system must be debugged and new data collected. In case the system has been modified, include a short description of the changes as an appendix.
@@ -71,7 +73,7 @@ The milestone is worth 200 points.
 
 
 \pagebreak
-
+\fi
 
 \section{System as One Unit}\label{sec:system-one-unit}
 
@@ -568,11 +570,31 @@ As we can see from above table, the interactive response time law corresponds we
 
 \pagebreak
 
-\section*{Appendix - changes in the source code}
+\section*{Appendix}
 
+\subsection{Changes in the source code}
 In order to measure the number of requests being actively processed in the middleware I had to enrich my source code in 2 counters - one keeping track of number of active getter workers, the other one keeping track of set requests for which response we are waiting from the servers. With these 2 counters is connected a necessary synchronization (all getter threads have access to the first counter, all setter threads have access to the second counter), which may decrease the performance of the middleware slightly.
 % TODO: add that it doesn't influence it significantly 
 
 %TODO: add for section 3
+
+
+\subsection{Stability trace}
+
+Because of the above changes in the source code, I have presented in the figures \ref{fig:mm1-throughput} and \ref{fig:mm1-response-time}. After the initial warm-up phase system achieves stability and stays stable for the remaining duration of the experiment.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.95\linewidth]{plots/mm1_throughput}
+\caption{Stability experiment revised - throughput}
+\label{fig:mm1-throughput}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.95\linewidth]{plots/mm1_response_time}
+\caption{Stability experiment revised - response time}
+\label{fig:mm1-response-time}
+\end{figure}
 
 \end{document}

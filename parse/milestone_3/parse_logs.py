@@ -1,4 +1,6 @@
 from parse.common import *
+import matplotlib.pyplot as plt
+import numpy as np
 
 def count_service_time(fname):
 	with open(fname, 'r') as f:
@@ -285,3 +287,102 @@ def print_stats(stats):
 		i += 1
 	res += ' \\\\ '
 	print(res)
+
+def combine_mm1():
+	vms = ['1', '2', '3']
+	fbase = 'logs_working/mm1/mm1_parsed'
+	response_times = []
+	response_times_std = []
+	throughputs = []
+	time = []
+	i = 0
+	for vm in vms:
+		with open(fbase + '_' + vm + '.log', 'r') as f:
+			j = 0
+			next(f)
+			for line in f:
+				line = line.split(',')
+				print(line[3] + '\n')
+				if i == 0:
+					time.append(line[0])
+					throughputs.append(int(line[1]))
+					response_times.append(int(line[2]))
+					response_times_std.append(float(line[3]))
+				else:
+					throughputs[j] += int(line[1])
+					response_times[j] += int(line[2])
+					response_times_std[j] += float(line[3])
+				j += 1
+		i += 1
+
+	for j in range(0, len(response_times)):
+		response_times[j] /= len(vms)
+		response_times_std[j] /= len(vms)
+
+	with open(fbase + '.log', 'w+') as f:
+		f.write('Time,TPS,Response time,Response time standard deviation\n')
+		for j in range(0, len(throughputs)):
+			f.write(time[j] +',' + str(throughputs[j]) + ',' + str(response_times[j]) + ',' + str(response_times_std[j]) + '\n')
+
+def RepresentsInt(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+def draw_mm1_plots():
+	fbase = 'logs_working/mm1/mm1_parsed.log'
+	results = [[], [[], []]]
+
+	tps = []
+	response_times = []
+	response_times_std = []
+	x = []
+	with open(fbase, 'r') as f:
+		i = 0
+		next(f)
+		for line in f:
+			line = line.split(',')
+			if (RepresentsInt(line[0])):
+				x.append(int(line[0]))
+			tps.append(int(line[1]))
+			response_times.append(float(line[2]))
+			response_times_std.append(float(line[3]))
+			i+=1
+
+	# Remove last, since it's total data
+	total_tps = tps[-1]
+	total_response_time = response_times[-1]
+	total_response_time_std = response_times_std[-1]
+	print(str(total_tps) + ',' + str(total_response_time) + ',' + str(total_response_time_std))
+	del tps[-1]
+	del response_times[-1]
+	del response_times_std[-1]
+
+	plt.ylim([0, 27500])
+	plt.xlim([0, 3600])
+	plt.grid(True)
+	plt.plot(x, tps)
+	plt.title('Aggregated throughput')
+	plt.ylabel('Throughput [ops/s]')
+	plt.xlabel('Time [s]')
+	plt.savefig('plots/mm1_throughput.png')
+	plt.clf()
+
+	plt.ylim([0, 44000])
+	plt.xlim([0, 3600])
+	plt.grid(True)
+	# plt.errorbar(x, response_times, response_times_std)
+	plt.plot(x, response_times)
+	response_times_minus = []
+	response_times_plus = []
+	for i in range(0, len(response_times)):
+		response_times_minus.append(response_times[i] - response_times_std[i])
+		response_times_plus.append(response_times[i] + response_times_std[i])
+	plt.plot(x, response_times_minus)
+	plt.plot(x, response_times_plus)
+	plt.title('Response time')
+	plt.ylabel('Response time [us]')
+	plt.xlabel('Time [s]')
+	plt.savefig('plots/mm1_response_time.png')
