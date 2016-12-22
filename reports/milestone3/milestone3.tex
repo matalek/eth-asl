@@ -86,13 +86,12 @@ Build an M/M/1 model of your entire system based on the stability trace that you
 
 In M/M/1 model we have one queue and one server. As server we will consider memcached server. Since there are actually 3 memcached servers processing requests, we will have to calculate the service rate accordingly. We do not consider clients as a part of our system - as the system we take our middleware and connected memcached servers.
 
-For this model we take server discipline First Come First Served, with no buffer limitations. The population size is 192 clients and the system is a closed one. All values have been calculated based on formulas in Box 31.1 from the course book.
+%For this model we take server discipline First Come First Served, with no buffer limitations. 
+The population size is 192 clients and the system is a closed one. All values have been calculated based on formulas in Box 31.1 from the course book.
 
 In order to provide more detailed analysis I have enhanced logging inside the middleware (see the appendix for detailed changes). Therefore I had to rerun the stability trace (plots provided in the appendix) as well as other experiments, from which data is used in the next sections. Logs for the repeated stability trace are in files: mm1\_1, mm1\_2, mm1\_3, mm1\_parsed (see appendix for links). I run the new experiment for 30 minutes (which was enough to prove that the system was stable and to gather appropriate data).
 
-Throughput measured by the memaslap clients was equal to 13758 operations/second. Therefore, I take arrival rate $\lambda = 13758 \textrm{ ops/s}$.
-
-One approach to calculate the service rate is to take maximum throughput measured during the experiment. This approach has been suggested during the tutorial and gives us a lower bound on a service rate. This is because if system was able at some point in time to have this performance, it means that it is able to perform at least that well. Since the running time of the experiment was pretty long (30 minutes), we can assume that this approximation is good enough.
+Throughput measured by memaslap clients was equal to 13758 operations/second. Therefore, I take arrival rate $\lambda = 13758 \textrm{ ops/s}$. One approach to calculate the service rate is to take maximum throughput measured during the experiment. This approach has been suggested during the tutorial and gives us a lower bound on a service rate. This is because if system was able at some point in time to have this performance, it means that it is able to perform at least that well. Since the running time of the experiment was pretty long (30 minutes), we can assume that this approximation is good enough.
 
 Another approach to do this would be to calculate the number of requests being actively processed in the middleware, which corresponds to the average parallelism in the middleware. We would then assume that the service time is average time spent in the servers divided by the number of active threads. We still would need to take into the account that this time includes requests being sent over the network, but we could also treat network as a queue. Since servers have only 1 thread working the requests will partially wait in the queue of the server and partially this waiting period will be included in the time spent in the network. However, this approach proved to be inaccurate. For this task I got the following results: on average 38.15 getter threads are busy processing requests and there are on average 1.05 requests in all setter threads (there are 3 of them). So, on average, there are $m = 39.21$ on the fly (sum based on more precise numbers). That would mean service rate approximately 13893 requests/second and would result in a very high utilization - around 99\%. For the second task, however, utilization calculated using this approach was over 1. This is because in order to use this method we have to assume that memcached servers are busy almost all the time and time spent in the network, even without network, would be spent in the queue. However, this is not the case and therefore results of this method are unsatisfactory. 
 
@@ -106,14 +105,14 @@ $\mu = 16701\textrm{ req/s}$.
 %In order to calculate mean service rate which includes that many requests are processed in parallel, I had to find out the average number of requests being in the service. In order to do that I had to make some changes in my code (described in the appendix) i I 
 This enables us to calculate the offered load:
 $\rho \approx 82.38\%$.
-The offered load is below 1, which means that the system is stable. It would mean that $82.38\%$ of the time the server is busy.
+The offered load is below 1, which means that the system is stable. It means that $82.38\%$ of the time the server is busy.
 %The utilization can be considered to be pretty high. It stems from the fact that for stability experiment I have used only 16 threads. As the experiments from second milestones have shown, for 16 threads we get worse performance than for the higher number of threads. This means that threads are mostly busy and since the high utilization of the system. What is more, the component that causes this high utilization is accepting thread. As I have pointed out in the report for milestone 2, this component at some point becomes the bottleneck of the system. For stability trace It was still not the case (too low number of threads), but this component either way is not that effective and affects the offered load.
-Consequently we get that the  probability that there are zero jobs in the system equals: $1 - \rho \approx 17.62\%$. 
+Consequently we get that the  probability that there are zero jobs in the system equal: $1 - \rho \approx 17.62\%$. 
 This result is not consistent with the data collected from the middleware. We can calculate that the first percentile of number of active getter threads is already equal 8. This means that 99\% of the time they are not less than 8 get requests being processed in the system. This contradicts result from the theory. This can be explained in a following way: M/M/1 models do not take into the account the possibility that several requests can be processed at the same time. Based on the high service rate from model we get that the single request is processed really quickly, so that they don't queue that much. However, in reality, requests are processed for a longer time, but they are several requests processed in parallel. In a similar way, when we calculate the average number of requests in the system, we get contradicting results. We have:
 $E[n] 
 %=\frac{\rho}{1 - \rho} \approx{82.38\%}/{17.62\%} 
 \approx 4.67$.
-We know from the collected logs that on average there are around 39 requests being processed at the same time. This means that they are at least 39 requests in the whole system. The reason for this discrepancy is the same as mentioned above - M/M/1 model does not consider the parallelism. Variance for $n$ was calculated to be around $26.5$, measured value was equal around $118.5$, which is around $4.5$ times higher. This value is much smaller than the square ratio of mean values, which implies that the number of jobs in our system was, proportionally, less varied.
+We know from the collected logs that on average there are around 39 requests being processed at the same time. This means that they are at least 39 requests in the whole system. The reason for this discrepancy is the same as mentioned above - M/M/1 model does not consider the parallelism. Variance for $n$ was calculated to be around $26.5$, measured value was equal around $118.5$, which is around $4.5$ times higher. This suggests that the number of jobs in our system was, proportionally, less varied - difference in variance is way smaller than squared difference for mean value.
 
 % Remove if not enough space
 %It is also worth pointing out here, that measured average number of set requests being serviced is quite low, considering that there are 3 setter threads (one for each queue) which process requests asynchronously (one thread can process more than one requests at the same time). This is because set requests are only 1\% of all requests, so they are not many of them and although it takes longer to process them, the low number of them leads to low number of them being processed at the same time.
@@ -134,8 +133,8 @@ The ratio of jobs in the queue to jobs in the system is equal to $\rho \approx 0
 We can calculate also mean response time:
 $E[r] 
 %= (1/\mu)/(1 - \rho) \approx \frac{1}{16701 \textrm{ requests/second} \cdot 17.62\%} 
-\approx \SI{339.82}{\micro\second}$
-When we look at the data collected from the middleware we can see that the mean time spent in the middleware equals approximately \SI{7655}{\micro\second}. This does not correspond at all to the calculated mean response time. This can again be explained by the fact that our model is not appropriate for handling parallelism. High service rate means, for M/M/1 model, that the requests are processed quickly and do not spend much time in service and, in consequence, in the middleware. In reality it takes some time to process the request, which results in way higher measured time spent in the middleware. The same applies for mean waiting time (time in the queue) and mean service time. From theory we have:
+\approx \SI{339.82}{\micro\second}$.
+When we look at the data collected from the middleware we can see that the mean time spent in the middleware equals approximately \SI{7655}{\micro\second} (we take time spent inside the middleware cause it better corresponds to the calculated response time than response time measured by clients, which include also additional network time). This does not correspond at all to the calculated mean response time. This can again be explained by the fact that our model is not appropriate for handling parallelism. High service rate means, for M/M/1 model, that the requests are processed quickly and do not spend much time in service and, in consequence, in the middleware. In reality it takes some time to process the request, which results in way higher measured time spent in the middleware. The same applies for mean waiting time (time in the queue) and mean service time. From theory we have:
 $E[w] 
 %= \rho \frac{1/\mu}{1 - \rho} \approx 82.38\% \cdot \frac{1/16701}{17.62\%} 
 \approx \SI{279.95}{\micro\second}$ and
@@ -156,8 +155,9 @@ The corresponding values measured by the middleware equal: \SI{3203}{\micro\seco
 \end{tabular}
 \end{center}
 }
-We can clearly see that measured statistics are much higher, because of the parallelism and the fact that corresponding mean values are also higher. Bigger difference in variance is because when calculating variance we are dealing with squares, so the values are also bigger (and so is the ratio).
+We can clearly see that measured statistics are much higher, because of the parallelism and the fact that corresponding mean values are also higher. Bigger difference in variance is because when calculating variance we are dealing with squares, so the values are also bigger (and so is the ratio). However, the ratio (or root of the ration for variance) is smaller than parallelism calculated based on mean response times values (around 47), which again suggests that the real behavior of our system is less varied. This can be explained by the fact that real implementation of the system is much more complex than the model we are using. Different factors inside the middleware are connected with each other and cooperation of different components lowers the variation of data. What is more, the distribution of the arrival rate might be different than the one that M/M/1 model assumes (Poisson distribution). 
 
+\iffalse
 Another statistics calculated based on the model, but not comparable to the measured values (not enough measured data) are as follows:
 
 {\small
@@ -171,6 +171,7 @@ Another statistics calculated based on the model, but not comparable to the meas
 \end{tabular}
 \end{center}
 }
+\fi
 
 To sum up, M/M/1 model does not reflect our middleware properly. It does not take into the account the parallelism and predicted values differ significantly.
 
@@ -197,9 +198,8 @@ Starting from the different configurations that you used in the second milestone
 
 In this section we will model a system as a queue with $m$ servers processing the requests. The system under test is going to be defined as our middleware together with memcached servers. We will take $m$ equal to the number of memcached servers used for the given experiment and in our model each server will correspond to threads associated with one queue forwarding request together with the according memcached server. As it will be pointed out, this model won't correspond properly to the behavior of the system, since each server can in fact process more than 1 request at the same time (which is the underlying assumption for the model). I have decided for this model because the number of resources (servers) here corresponds to the actual number of core functionality resources (memcached servers; middleware is only for forwarding requests, not actually providing core functionality of the whole system). Since I include the processing threads as a part of the service, I don't have to change the arrival rate to include increased number of requests sent to the memcached servers because of the replication. Actual number of requests that arrive to the threads is the same as number of requests sent to the clients and replication will be included in the service time.
 
-For this model we take server discipline First Come First Served, with no buffer limitations. The population size is 210 clients and the system is a closed one.
-
-To create models for this section I have used the approach presented in the section \ref{sec:system-one-unit}, which is calculating service rate based on the maximum throughput. In the experiments described in this section runtime was shorter than in the stability experiment, but still we collected 180 values for the throughput (measuring every second for one minute, 3 replications). This enabled us to, once again, achieve quite good approximation. Another approach (dividing server time by the number of requests on the fly) would result in utilization over 1.
+%For this model we take server discipline First Come First Served, with no buffer limitations.
+The population size is 210 clients. To create models for this section I have used the approach presented in the section \ref{sec:system-one-unit}, which is calculating service rate based on the maximum throughput. In the experiments described in this section runtime was shorter than in the stability experiment, but still we collected 180 values for the throughput (measuring every second for one minute, 3 replications). This enabled us to, once again, achieve quite good approximation. Another approach (dividing server time by the number of requests on the fly) would result in utilization over 1.
 
 In order to provide a proper analysis of the model, I had rerun the experiments from milestone 2. tasks 2. and 3. I have used the same configuration as provided in sections 2.2 and 3.2 of my report from the previous milestone. The only difference was in the logging facilities introduced for the middleware (for changes in the source code - see appendix). The new log files have corresponding names to those used in the previous milestones, but have 'improved\_' prefix (for log files list - see appendix).
 
@@ -222,7 +222,6 @@ There have been many different configurations used in the scalability experiment
 In the table \ref{fig:input} is presented the necessary data to create before mentioned models. I have calculated $\mu$ based on above formula.
 
 \begin{figure}
-\label{fig:input}
 \begin{center}
 \begin{tabular}{|$c|^c|^c|^c|^c|^c|^c|^c|}
 \hline
@@ -239,8 +238,9 @@ $m$	& Rep.	&	 \parbox[t]{2cm}{Writes percentage (\%)} &	T	&	$\lambda$	&	M	&	$\mu
 \hline 7 & all & 10 & 10139 & 10139 & 13592 & 1942 \\ 
 \hline
 \end{tabular}
-\caption{Input data}
 \end{center}
+\caption{Input data}
+\label{fig:input}
 \end{figure}
 
 Let us point out here that $\mu$ (for each server) is significantly decreasing as we increase the number of servers. This should not be the case according to the theory - $\mu$ should be the same for each server, independently on their number and increasing number of servers should only increase the effective service rate ($m\mu$). However, in theory increasing number of servers means increasing number of resources available. We increase the number of resources available for memcached servers, but the number of resources available on the side of middleware stay the same (we have only 8 cores), what is more, with more servers we have more threads, which even more decreases the performance and results in decreased $\mu$.
