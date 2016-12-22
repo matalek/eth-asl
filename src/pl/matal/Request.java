@@ -61,7 +61,8 @@ public abstract class Request {
         long tQueue = instrumentationTimes[DEQUEUE_TIME] - instrumentationTimes[ENQUEUE_TIME];
         long tServer = instrumentationTimes[RECEIVE_FROM_SERVER_TIME] - instrumentationTimes[SEND_TO_SERVER_TIME];
         long tHash = instrumentationTimes[ENQUEUE_TIME] - instrumentationTimes[RECEIVE_FROM_CLIENT_TIME];
-        String res = type + " " + tMw + " " + tQueue + " " + tServer + " " + tHash + " " + (successFlag ? 1 : 0);
+        long tForw = instrumentationTimes[SEND_TO_SERVER_TIME] - instrumentationTimes[DEQUEUE_TIME];
+        String res = type + " " + tMw + " " + tQueue + " " + tServer + " " + tHash + " " + tForw + " " + (successFlag ? 1 : 0);
 //        int[] times = {RECEIVE_FROM_CLIENT_TIME, ENQUEUE_TIME, DEQUEUE_TIME, SEND_TO_SERVER_TIME,
 //                RECEIVE_FROM_SERVER_TIME, SEND_TO_CLIENT_TIME};
 //        for (int time : times) {
