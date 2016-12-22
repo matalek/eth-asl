@@ -575,7 +575,7 @@ Length: 1-2 pages
 Check the validity of all experiments from one of the three sections in your Milestone 2 report using the interactive law (choose a section in which your system has at least 9 different configurations). Analyze the results and explain them in detail.
 \fi
 
-I will check the validity of my experiments from section 2. of the Milestone 2 report, where I was analyzing the behavior as we change replication and the number of servers. The number of clients for all configurations was equal to 210. We assume that time clients wait before submitting next request equals approximately to 0 - it is reasonable assumption since every client corresponds to one thread and processing responses and issuing requests 
+I will check the validity of my experiments from section 2. of the Milestone 2 report, where I was analyzing the behavior as we change replication and the number of servers (logs from previous milestone: replication\_1, replication\_2, replication\_3, replication\_general, replication\_middleware). The number of clients for all configurations was equal to 210. We assume that time clients wait before submitting next request equals approximately to 0 - it is reasonable assumption since every client corresponds to one thread processing responses and issuing requests 
 
 Below table presents the results of the experiments for different configurations as well as calculated response time. It has been calculated from the formula: $R = \frac{N}{X} - Z$, where $R$ - response time, $N = 210$ - number of clients, $X$ - throughput and $Z=\SI{0}{\micro\second}$ - waiting time for clients before submitting next request. I have also calculated derivation from the theory, which is equal to $\frac{R_e - R}{R}$, where $R_e$ is measured response time.
 \medskip
@@ -595,13 +595,17 @@ Below table presents the results of the experiments for different configurations
 \end{tabular}
 \medskip
 
-As we can see from above table, the interactive response time law corresponds well to the results from the measurements. Looking at the deviation we can see that response time measured has always been higher than response time calculated using the interactive law. This can be explained by a couple of factors. Firstly, during our experiments we are dealing with tail distribution, which means that spikes in the plots are usually connected with higher response times. This is because we are dealing with the distributed environment in the cloud, where network instability can cause these higher request times. Secondly, we do not know exactly how logging mechanism works in memaslap. It can be the case that the client after receiving response immediately sends a new request and after that it logs receiving of the response. What is more, data from the client can have some small error margin, especially because we are taking into account data only from the part of the running time (after stability reached and before cool down). This might be the cause of these differences. However, these discrepancies are rather small and do not undermine the validity of my experiments.
+As we can see from above table, the interactive response time law corresponds well to the results from the measurements. Looking at the deviation we can see that response time measured has always been higher than response time calculated using the interactive law. This can be explained by a couple of factors. Firstly, during our experiments we are dealing with tail distribution, which means that spikes in the plots are usually connected with higher response times. This is because we are dealing with the distributed environment in the cloud, where network instability can cause these higher request times. Secondly, we do not know exactly how logging mechanism works in memaslap. It can be the case that the client after receiving response immediately sends a new request and after that it logs receiving of the response. What is more, data from the client can have some error margin, especially because we are taking into account data only from the part of the running time (after stability reached and before cool down). This might be the cause of these differences. However, these discrepancies are rather small and do not undermine the validity of my experiments.
 
 \pagebreak
 
 \section*{Logfile listing}
 
-\begin{tabular}{|c|p{12.0cm}|}
+Below is the lists of log files for experiments that I have rerun for this milestone.
+\medskip
+
+\begin{center}
+\begin{tabular}{|c|p{9.0cm}|}
 \hline \textbf{Short name }& \textbf{Location} \\ 
 \hline  mm1\_1 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/mm1_1.log}\\ 
 \hline mm1\_2 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/mm1_2.log}\\ 
@@ -619,19 +623,20 @@ As we can see from above table, the interactive response time law corresponds we
 \hline network\_middleware & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/network_middleware.tar.gz}\\ 
 \hline 
 \end{tabular}
+\end{center}
 
 \pagebreak
 
 \section*{Appendix}
 
-\subsection{Changes in the source code}
-In order to measure the number of requests being actively processed in the middleware I had to enrich my source code in 2 counters - one keeping track of number of active getter workers, the other one keeping track of set requests for which response we are waiting from the servers. With these 2 counters is connected a necessary synchronization (all getter threads have access to the first counter, all setter threads have access to the second counter), which might have decreased the performance of the middleware slightly. For repeated stability trace we got lower throughput: 13758 ops/s, compared to the original experiment: 14289 ops/s. This can be, however, also explained by the fact that these experiments were run on different machines.
+\subsection*{Changes in the source code}
+In order to measure the number of requests being actively processed in the middleware I had to enrich my source code in 2 counters - one keeping track of number of active getter workers\footnote{\url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/src/pl/matal/GetterWorker.java}}, the other one keeping track of set requests for which response we are waiting from the servers\footnote{\url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/src/pl/matal/SetterWorker.java}}\footnote{\url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/src/pl/matal/ResponseQueue.java}}. With these 2 counters is connected a necessary synchronization (all getter threads have access to the first counter, all setter threads have access to the second counter), which might have decreased the performance of the middleware slightly. For repeated stability trace we got lower throughput: 13758 ops/s, compared to the original experiment: 14289 ops/s. This can be, however, also explained by the fact that these experiments were run on different machines at different times. I log these values as additional statistic\footnote{\url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/src/pl/matal/Request.java}}.
 
 For the section \ref{sec:network-of-queues} I had to also log additional times: time of processing by the accepting thread and time from dequeueing till forwarding first request to the server. 
 
-\subsection{Stability trace}
+\subsection*{Stability trace}
 
-Because of the above changes in the source code, I have presented performance of my system on figures \ref{fig:mm1-throughput} and \ref{fig:mm1-response-time}. After the initial warm-up phase system achieves stability and stays stable till the cool-down phase.
+Because of the above changes in the source code, I have presented performance of my system during the stability trace experiment on figures \ref{fig:mm1-throughput} and \ref{fig:mm1-response-time}. After the initial warm-up phase system achieves stability and stays stable till the cool-down phase.
 
 \begin{figure}
 \centering
