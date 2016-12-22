@@ -552,7 +552,6 @@ $$VB =  3198169 / 9529925 \approx 33.56\%$$
 $$VAB =  1262954 / 9529925 \approx 13.25\%$$
 $$VE =  876248 / 9529925 \approx 9.19\%$$
 We can therefore conclude that factor $A$ - percentage of writes - explains around 44\% of variation and is the most significant factor. Factor $B$ - replication factor - explains  around $34\%$ of the variation, interaction $AB$ - around 13\%. The remaining around 9\% is unexplained and is attributed to errors.
-%TODO analyze in context of the system
 
 Both of the parameters analyzed in this experiment cause the decrease in the performance as we increase them. Both these parameters increase the number of set requests that have to be sent to the memcached servers. However, increasing the writes percentage also decreases the reads percentage. Above analysis has shown that most impact can be attributed to increasing the writes percentage rather than increasing the replication factor, although the difference is not that big.
 
@@ -561,6 +560,10 @@ These results can be explained by a couple of factors. Firstly, by increasing th
 Secondly, in the ideal system increasing replication factor should have no or very little impact on the performance of the middleware (as explained in the report for milestone 2). On the other hand, increasing the number of setter requests can, also theoretically, have a significant impact on the performance of the system. This is because for each server we have only one thread processing set requests. When we increase the number of threads by 10 times, this thread will have to serve 10 times more requests and more requests will simply have to wait in the queue, which will decrease the performance of the system. Although in a real world system replication de facto has an effect on the system performance, it should be less significant than increasing the writes percentage. 
 
 Let us also analyze impact of the interaction between factors. It is not as significant as one could expect. In the milestone 2 we have shown that the decrease in the performance as we increase the writes percentage becomes significant with replication factor all, whereas for replication factor none it is not so significant. But also similarly we can see that it is only for 10\% writes that we can notice significant decrease in performance as we go from no replication to replication to all. Conducted calculations enable us to say then that it's mostly the influence of each factor separately that causes the significant decrease for the worst-case scenario (10\% writes with replication to all servers). This might be explained by the fact that these factors cause decrease in performance differently. Increasing replication makes us more prone to network latencies and therefore server time for requests is higher which leads to higher response time. On the other hand, increasing writes percentage causes setter worker to have more work to do and increases the ration of slower-processed requests. These ways of decreasing the performance are not that dependent on each other, which is confirmed by the factorial analysis conducted above.
+
+When we look at the percentage of variation attributed to errors we can see that it is quite high. This can be explained by the environment on which our system was run. It was highly dynamic cloud environment with performance dependent on performance of different machines and current state of the network.
+
+I have also performed similar analysis using multiplicative model (in above analysis I have used an additive one). The results were very similar, respectively I got approximately 43\%, 33\%, 14\% and 9\%. Therefore I presented the additive model, because it as well models the real life as the multiplicative one, but is easier.
 
 \pagebreak
 
