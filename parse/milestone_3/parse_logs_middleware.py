@@ -3,7 +3,7 @@ import os
 import math
 import statistics as st
 
-stats_cnt = 5
+stats_cnt = 3
 times_cnt = 6
 
 # per_values = [25, 50, 90]
@@ -66,7 +66,7 @@ def parse_middleware_times_single(fname, type):
 	for i in range(0, stats_cnt):
 		cnt = len(res[i])
 		res[i] = res[i][int(cnt / time_measured):int((time_measured - 1) * cnt / time_measured)]
-		data += [str(np.average(res[i]))] #, str(np.std(res[i]))]
+		data += [str(np.average(res[i])), str(np.percentile(res[i], 90))] #str(np.var(res[i]) * 10**(-12))]
 		for p in per_values:
 			data.append(str(np.percentile(res[i], p)))
 
@@ -91,7 +91,7 @@ def parse_middleware_times_single(fname, type):
 	# print(np.average(numbers))
 	# print(np.std(numbers))
 
-	data += [str(np.average(numbers))]
+	data += [str(np.average(numbers)), str(np.var(numbers))]
 
 	return data
 

@@ -86,13 +86,15 @@ Build an M/M/1 model of your entire system based on the stability trace that you
 
 In M/M/1 model we have one queue and one server. As server we will consider memcached server. Since there are actually 3 memcached servers processing requests, we will have to calculate the service rate accordingly. We do not consider clients as a part of our system - as the system we take our middleware and connected memcached servers.
 
-For this model we take server discipline First Come First Served, with no buffer limitations. The population size is 192 clients and the system is a closed one.
+For this model we take server discipline First Come First Served, with no buffer limitations. The population size is 192 clients and the system is a closed one. All values have been calculated based on formulas in Box 31.1 from the course book.
+
+In order to provide more detailed analysis I have enhanced logging inside the middleware (see the appendix for detailed changes). Therefore I had to rerun the stability trace (plots provided in the appendix) as well as other experiments, from which data is used in the next sections. Logs for the repeated stability trace are in files: mm1\_1, mm1\_2, mm1\_3, mm1\_parsed (see appendix for links). I run the new experiment for 30 minutes (which was enough to prove that the system was stable and to gather appropriate data).
 
 Throughput measured by the memaslap clients was equal to 13758 operations/second. Therefore, I take arrival rate $\lambda = 13758 \textrm{ ops/s}$.
 
 One approach to calculate the service rate is to take maximum throughput measured during the experiment. This approach has been suggested during the tutorial and gives us a lower bound on a service rate. This is because if system was able at some point in time to have this performance, it means that it is able to perform at least that well. Since the running time of the experiment was pretty long (30 minutes), we can assume that this approximation is good enough.
 
-Another approach to do this would be to calculate the number of requests being actively processed in the middleware, which corresponds to the average parallelism in the middleware. We would then assume that the service time is average time spent in the servers divided by the number of active threads. We still would need to take into the account that this time includes requests being sent over the network, but we could also treat network as a queue. Since servers have only 1 thread working the requests will partially wait in the queue of the server and partially this waiting period will be included in the time spent in the network. However, this approach proved to be inaccurate. For this task I got the following results: on average 38.15 getter threads are busy processing requests and there are on average 1.05 requests in all setter threads (there are 3 of them). So, on average, there are $m = 39.21$ on the fly (sum based on more precise numbers). That would mean service rate approximately 13893 requests/second and would result in a very high utilization - around 99\%. For the second task, however, utilization calculated using this approach resulted in utilization over 1. This is because in order to use this method we have to assume that memcached servers are busy almost all the time and time spent in the network, even without network, would be spent in the queue. However, this is not the case and therefore results of this method are unsatisfactory. 
+Another approach to do this would be to calculate the number of requests being actively processed in the middleware, which corresponds to the average parallelism in the middleware. We would then assume that the service time is average time spent in the servers divided by the number of active threads. We still would need to take into the account that this time includes requests being sent over the network, but we could also treat network as a queue. Since servers have only 1 thread working the requests will partially wait in the queue of the server and partially this waiting period will be included in the time spent in the network. However, this approach proved to be inaccurate. For this task I got the following results: on average 38.15 getter threads are busy processing requests and there are on average 1.05 requests in all setter threads (there are 3 of them). So, on average, there are $m = 39.21$ on the fly (sum based on more precise numbers). That would mean service rate approximately 13893 requests/second and would result in a very high utilization - around 99\%. For the second task, however, utilization calculated using this approach was over 1. This is because in order to use this method we have to assume that memcached servers are busy almost all the time and time spent in the network, even without network, would be spent in the queue. However, this is not the case and therefore results of this method are unsatisfactory. 
 
 %I had to improve the logging in my middleware (see apendix) in order to log also current numbers of busy getter threads and number of requests processed currently by setter requests (i.e. number of set requests that have been taken out of the queue but the response for them has not yet been sent to the client). This made it necessary to repeat the experiment.
 
@@ -103,20 +105,18 @@ $\mu = 16701\textrm{ req/s}$.
 %$$\mu \approx \frac{39.21}{2841.63} \cdot 10^6 \textrm{ requests/second} \approx 13892.53 \textrm{ requests/second}$$
 %In order to calculate mean service rate which includes that many requests are processed in parallel, I had to find out the average number of requests being in the service. In order to do that I had to make some changes in my code (described in the appendix) i I 
 This enables us to calculate the offered load:
-$\rho \approx 82.38\%$
-The offered load is below 1, which means that the system is stable.
-
-The utilization can be considered to be pretty high. It stems from the fact that for stability experiment I have used only 16 threads. As the experiments from second milestones have shown, for 16 threads we get worse performance than for the higher number of threads. This means that threads are mostly busy and since the high utilization of the system. What is more, the component that causes this high utilization is accepting thread. As I have pointed out in the report for milestone 2, this component at some point becomes the bottleneck of the system. For stability trace It was still not the case (too low number of threads), but this component either way is not that effective and affects the offered load.
-
-% Maybe remove
-It is also worth pointing out, that the average number of set requests being serviced is quite low, considering that there are 3 setter threads (one for each queue) which process requests asynchronously (one thread can process more than one requests at the same time). This is because set requests are only 1\% of all requests, so they are not many of them and although it takes longer to process them, the low number of them leads to low number of them being processed at the same time.
-
-The  probability that there are zero jobs in the system equals: $1 - \rho \approx 17.62\%$. 
-This result is not consistent with the data collected from the middleware. We can calculate that the first percentile of number of active getter threads is already equal 8. This means that 99\% of the time they are not less than 8 get requests being processed in the system. This contradicts result from the theory. This can be explained in a following way: M/M/1 models do not take into the account the possibility that several requests can be processed at the same time. Based on the high service rate from model we can get that the single request is processed really quickly, so that they don't queue that much. However, in reality, requests are processed for a longer time, but they are several requests processed in parallel. In a similar way, when we calculate the average number of requests in the system, we get contradicting results. We have:
+$\rho \approx 82.38\%$.
+The offered load is below 1, which means that the system is stable. It would mean that $82.38\%$ of the time the server is busy.
+%The utilization can be considered to be pretty high. It stems from the fact that for stability experiment I have used only 16 threads. As the experiments from second milestones have shown, for 16 threads we get worse performance than for the higher number of threads. This means that threads are mostly busy and since the high utilization of the system. What is more, the component that causes this high utilization is accepting thread. As I have pointed out in the report for milestone 2, this component at some point becomes the bottleneck of the system. For stability trace It was still not the case (too low number of threads), but this component either way is not that effective and affects the offered load.
+Consequently we get that the  probability that there are zero jobs in the system equals: $1 - \rho \approx 17.62\%$. 
+This result is not consistent with the data collected from the middleware. We can calculate that the first percentile of number of active getter threads is already equal 8. This means that 99\% of the time they are not less than 8 get requests being processed in the system. This contradicts result from the theory. This can be explained in a following way: M/M/1 models do not take into the account the possibility that several requests can be processed at the same time. Based on the high service rate from model we get that the single request is processed really quickly, so that they don't queue that much. However, in reality, requests are processed for a longer time, but they are several requests processed in parallel. In a similar way, when we calculate the average number of requests in the system, we get contradicting results. We have:
 $E[n] 
 %=\frac{\rho}{1 - \rho} \approx{82.38\%}/{17.62\%} 
 \approx 4.67$.
-We know from the collected logs that on average there are around 39 requests being processed at the same time. This means that they are at least 39 requests in the whole system. The reason for this discrepancy is the same as mentioned above - M/M/1 model does not consider the parallelism. 
+We know from the collected logs that on average there are around 39 requests being processed at the same time. This means that they are at least 39 requests in the whole system. The reason for this discrepancy is the same as mentioned above - M/M/1 model does not consider the parallelism. Variance for $n$ was calculated to be around $26.5$, measured value was equal around $118.5$, which is around $4.5$ times higher. This value is much smaller than the square ratio of mean values, which implies that the number of jobs in our system was, proportionally, less varied.
+
+% Remove if not enough space
+%It is also worth pointing out here, that measured average number of set requests being serviced is quite low, considering that there are 3 setter threads (one for each queue) which process requests asynchronously (one thread can process more than one requests at the same time). This is because set requests are only 1\% of all requests, so they are not many of them and although it takes longer to process them, the low number of them leads to low number of them being processed at the same time.
 
 When we take a look at calculated mean number of jobs in the queue and in the service we still see discrepancies, but there is one thing that is similar to measured values:
 $E[n_q] 
@@ -125,7 +125,7 @@ $E[n_q]
 $E[n_s] 
 %= \rho 
 \approx 0.82$.
-The ratio of jobs in the queue to jobs in the system is equal to $\rho \approx 0.823$ (simple formulas transformation). Under the assumption that almost all of 192 requests are in the system, we have that around 39 requests are being processed (see earlier) and therefore $192-39 = 153$ jobs are in the queue. The ratio between jobs in the queue and jobs in the system equals here to $\frac{153}{192} \approx 0.797$. These values are relatively close to each other, so we can say that this ration has been well predicted by our model.
+The ratio of jobs in the queue to jobs in the system is equal to $\rho \approx 0.823$ (simple formulas transformation). Under the assumption that almost all of 192 requests are in the system, we have that around 39 requests are being processed (see earlier) and therefore $192-39 = 153$ jobs are in the queue. The ratio between jobs in the queue and jobs in the system equals here to $\frac{153}{192} \approx 0.797$. These values are relatively close to each other, so we can say that this ration has been well predicted by our model. Variance for $n_q$ was calculated to equal around $25.0$ - we cannot, however, compare this with measured data, since we didn't provide appropriate logging facilities for that (we're not counting number of requests in the queue). 
 
 %The probability that there are $n$ jobs in the system equals approximately $p_n = 0.97\% \cdot 99.03\%^n$. We can also calculate how many requests are in system in total:
 %$$E[n] = \frac{\rho}{1 - \rho} \approx{99.03\%}/{0.98\%} \approx 102.52$$
@@ -142,10 +142,37 @@ $E[w]
 $E[s] 
 %= \frac{1}{\mu} 
 \approx \SI{59.88}{\micro\second}$.
-The corresponding values measured by the middleware equal: \SI{3203}{\micro\second} for time spent in the queue (which is part of the system representation) and \SI{2841}{\micro\second} for the time spend in the servers. We can see that measured time spent in the servers is approximately 47 times higher then calculated service time. This value is comparable to 39 requests on the fly (mentioned earlier), but it better corresponds to the parallelism of the middleware, since it also reflects the fact that servers do not have to be busy all the time. Let's not forget here that requests also spend some time waiting for the accepting thread to be parsed, so that the difference between waiting time predicted and measured is even higher.
+The corresponding values measured by the middleware equal: \SI{3203}{\micro\second} for time spent in the queue (which is part of the system representation) and \SI{2841}{\micro\second} for the time spend in the servers. We can see that measured time spent in the servers is approximately 47 times higher then calculated service time. This value is comparable to 39 requests on the fly (mentioned earlier), but it better corresponds to the parallelism of the middleware, since it also reflects the fact that servers do not have to be busy all the time. Below we present some more statistics:
+%Let's not forget here that requests also spend some time waiting for the accepting thread to be parsed, so that the difference between waiting time predicted and measured is even higher.
 
-%TODO: more statistics
-To sum up, M/M/1 model does not reflect our middleware properly. It does not take into the account the parallelism and predicted values differ significantly. I have not included calculations for more values, like variance or percentiles, cause they also won't correspond to the values measured by the middleware.
+{\small
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline & $Var[r]$ ($\SI{}{\micro\second}^2$) & 90-th perc. $r$ ($\SI{}{\micro\second}$) & Var[w] ($\SI{}{\micro\second}^2$) & 90-th perc. $w$ ($\SI{}{\micro\second}^2$)\\
+\hline Calculated & 115482 & 781 & 111896 & 717\\
+\hline Measured & 180146340 & 13993 & 117574816 & 10476 \\
+\hline Ratio & 1560 &  17.9 & 1051 & 14.6\\
+\hline
+\end{tabular}
+\end{center}
+}
+We can clearly see that measured statistics are much higher, because of the parallelism and the fact that corresponding mean values are also higher. Bigger difference in variance is because when calculating variance we are dealing with squares, so the values are also bigger (and so is the ratio).
+
+Another statistics calculated based on the model, but not comparable to the measured values (not enough measured data) are as follows:
+
+{\small
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline Mean number of jobs served in one busy period & 5.7 \\
+\hline Variance of number of jobs served in one busy period & 274.7 \\
+\hline Mean busy period duration & \SI{340}{\micro\second} \\
+\hline Variance of the busy period & $\SI{539929}{\micro\second}^2$ \\
+\hline
+\end{tabular}
+\end{center}
+}
+
+To sum up, M/M/1 model does not reflect our middleware properly. It does not take into the account the parallelism and predicted values differ significantly.
 
 % TODO: explain
 %$$E[r] = \frac{1/\mu^2}{(1 - \rho)^2} \approx \frac{1/13893^2}{0.97\%^2}$$
@@ -570,30 +597,41 @@ As we can see from above table, the interactive response time law corresponds we
 
 \pagebreak
 
+\section*{Logfile listing}
+
+\begin{tabular}{|c|p{12.0cm}|}
+\hline \textbf{Short name }& \textbf{Location} \\ 
+\hline  mm1\_1 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/mm1_1.log}\\ 
+\hline mm1\_2 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/mm1_2.log}\\ 
+\hline mm1\_3 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/mm1_3.log}\\ 
+\hline mm1\_parsed & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/mm1_parsed.log}\\ 
+\hline 
+\end{tabular}
+
+\pagebreak
+
 \section*{Appendix}
 
 \subsection{Changes in the source code}
-In order to measure the number of requests being actively processed in the middleware I had to enrich my source code in 2 counters - one keeping track of number of active getter workers, the other one keeping track of set requests for which response we are waiting from the servers. With these 2 counters is connected a necessary synchronization (all getter threads have access to the first counter, all setter threads have access to the second counter), which may decrease the performance of the middleware slightly.
-% TODO: add that it doesn't influence it significantly 
+In order to measure the number of requests being actively processed in the middleware I had to enrich my source code in 2 counters - one keeping track of number of active getter workers, the other one keeping track of set requests for which response we are waiting from the servers. With these 2 counters is connected a necessary synchronization (all getter threads have access to the first counter, all setter threads have access to the second counter), which might have decreased the performance of the middleware slightly. For repeated stability trace we got lower throughput: 13758 ops/s, compared to the original experiment: 14289 ops/s. This can be, however, also explained by the fact that these experiments were run on different machines.
 
-%TODO: add for section 3
-
+For the section \ref{sec:network-of-queues} I had to also log additional times: time of processing by the accepting thread and time from dequeueing till forwarding first request to the server. 
 
 \subsection{Stability trace}
 
-Because of the above changes in the source code, I have presented in the figures \ref{fig:mm1-throughput} and \ref{fig:mm1-response-time}. After the initial warm-up phase system achieves stability and stays stable for the remaining duration of the experiment.
+Because of the above changes in the source code, I have presented performance of my system on figures \ref{fig:mm1-throughput} and \ref{fig:mm1-response-time}. After the initial warm-up phase system achieves stability and stays stable till the cool-down phase.
 
 \begin{figure}
 \centering
 \includegraphics[width=0.95\linewidth]{plots/mm1_throughput}
-\caption{Stability experiment revised - throughput}
+\caption{Stability experiment repeated - throughput}
 \label{fig:mm1-throughput}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[width=0.95\linewidth]{plots/mm1_response_time}
-\caption{Stability experiment revised - response time}
+\caption{Stability experiment repeated - response time}
 \label{fig:mm1-response-time}
 \end{figure}
 

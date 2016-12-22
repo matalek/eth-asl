@@ -152,7 +152,7 @@ def parse_mm1(vm_number):
 				if line.find('Total Statistics (') == -1:
 					i += 2
 					line = lines[i].split()
-					data.append([str(time * 10), line[3], line[8], line[9]])
+					data.append([str(time), line[3], line[8], line[9]])
 					time += 1
 				else:
 					# Total average response time and std

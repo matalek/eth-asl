@@ -361,7 +361,7 @@ def draw_mm1_plots():
 	del response_times_std[-1]
 
 	plt.ylim([0, 27500])
-	plt.xlim([0, 3600])
+	plt.xlim([0, 1800])
 	plt.grid(True)
 	plt.plot(x, tps)
 	plt.title('Aggregated throughput')
@@ -371,7 +371,7 @@ def draw_mm1_plots():
 	plt.clf()
 
 	plt.ylim([0, 44000])
-	plt.xlim([0, 3600])
+	plt.xlim([0, 1800])
 	plt.grid(True)
 	# plt.errorbar(x, response_times, response_times_std)
 	plt.plot(x, response_times)
