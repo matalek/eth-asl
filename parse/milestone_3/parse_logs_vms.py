@@ -50,7 +50,7 @@ def parse_throughput(fbase, headers, directory='./logs'):
 	# res2 = list(map(lambda x : str(x), res2))
 	write_to_file(fbase + '-values', res2)
 
-def parse_throughput_single(fname):
+def parse_throughput_single(fname, type='Total'):
 	print(fname)
 	till_stability_throughput = 0
 	res = []
@@ -60,7 +60,7 @@ def parse_throughput_single(fname):
 		started = False
 		while i < len(lines):
 			line = lines[i]
-			if (line.find('Total Statistics') != -1) and (line.find('Total Statistics (') == -1):
+			if (line.find('%s Statistics' % type) != -1) and (line.find('%s Statistics (' % type) == -1):
 				i += 3
 				cur_throughput = int(lines[i].split()[3])
 				if started:

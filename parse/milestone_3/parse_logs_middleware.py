@@ -3,11 +3,12 @@ import os
 import math
 import statistics as st
 
-stats_cnt = 4
+stats_cnt = 5
 times_cnt = 6
 
 # per_values = [25, 50, 90]
-per_values = [25, 50, 90]
+# per_values = [25, 50, 90]
+per_values = []
 
 time_measured = 3
 repetitions = 3
@@ -65,7 +66,7 @@ def parse_middleware_times_single(fname, type):
 	for i in range(0, stats_cnt):
 		cnt = len(res[i])
 		res[i] = res[i][int(cnt / time_measured):int((time_measured - 1) * cnt / time_measured)]
-		data += [str(np.average(res[i])), str(np.std(res[i]))]
+		data += [str(np.average(res[i]))] #, str(np.std(res[i]))]
 		for p in per_values:
 			data.append(str(np.percentile(res[i], p)))
 

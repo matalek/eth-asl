@@ -249,3 +249,36 @@ def copy_writes_logs():
 		# for type in ['get', 'set']:
 		# 	local('scp asl%s:logs/improved-writes-response_time-%s.log ./logs_working/improved-writes-response_time-%s_%d.log' % (hosts[i], type, type, i + 1))
 
+
+def run_network_experiment():
+	memaslap_hosts = [2, 3, 4]
+	run_time = 3 * 60
+	stats_time = 1
+	pause = 30
+	pause_2 = 15
+	clients_per_machine = 70
+	threads = 30
+
+	servers = 7
+	percentage = 10
+	replication_factor = 2
+
+	replication_values = [1, servers]
+	replication = replication_values[replication_factor - 1]
+	run_memcached_many(servers)
+
+	output = '../logs/network.log'
+	memcached_ips = [12, 14, 4, 13, 5, 10, 8]
+	memcached_string = ''
+	for i in range(0, servers):
+		memcached_string += '10.0.0.%d:11212 ' % memcached_ips[i]
+	run_middleware(threads, replication, memcached_string, output)
+	time.sleep(pause_2)
+
+	for host in memaslap_hosts:
+		run_memaslap_async('asl' + str(host), run_time, stats_time, clients_per_machine, output, ' -w 1k', cfg='writes_' + str(percentage))
+	time.sleep(run_time + pause)
+
+	stop_middleware()
+	stop_memcached_many(servers)
+	time.sleep(pause_2)
