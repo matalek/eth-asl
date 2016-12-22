@@ -282,3 +282,42 @@ def run_network_experiment():
 	stop_middleware()
 	stop_memcached_many(servers)
 	time.sleep(pause_2)
+
+def compress_logs_clients():
+	i = 1
+	for host in [2, 3, 4]:
+		# Add readmes
+		with settings(host_string='asl%d' % host):
+			# for directory_name in ['detailed', 'overall']:
+			# 	local('scp logs_working/README_max_throughput asl%d:logs/%s/README' % (host, directory_name))
+			# 	with cd('logs'):
+			# 		run('tar -zcvf %s.tar.gz %s' % (directory_name, directory_name))
+			# if i <= 3:
+			for experiment in ['improved-writes']:
+				local('scp logs_working/README_writes asl%d:logs/README' % (host))
+				with cd('logs'):
+					run('tar -zcvf %s.tar.gz %s*.log README' % (experiment, experiment))
+		experiments = ['improved-writes']
+		for experiment in experiments:
+			local('scp asl%s:logs/%s.tar.gz logs/milestone3/%s_%d.tar.gz' % (host, experiment, experiment,i))
+		i += 1
+
+def compress_logs_global():
+	# experiments = ['overall', 'detailed']
+	# for e in experiments:
+	# 	local('tar -zcvf logs/milestone2/%s_general.tar.gz -C logs_working/%s max_throughput.log max_throughput-response_time.log'
+	# 			% (e, e))
+
+	experiments = ['improved-writes']
+	for e in experiments:
+		local('tar -zcvf logs/milestone3/%s_general.tar.gz -C logs_working %s.log' % (e, e))
+
+def compress_logs_middleware():
+	experiments = ['improved-writes']
+	with settings(host_string='asl11'):
+		for e in experiments:
+			local('scp logs_working/README_writes_middleware asl11:logs/README')
+			with cd('logs'):
+				run('tar -zcvf %s.tar.gz %s*.log README' % (e, e))
+	for e in experiments:
+		local('scp asl11:logs/%s.tar.gz logs/milestone3/%s_middleware.tar.gz' % (e, e))

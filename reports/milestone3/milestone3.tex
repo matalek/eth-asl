@@ -175,7 +175,6 @@ Another statistics calculated based on the model, but not comparable to the meas
 
 To sum up, M/M/1 model does not reflect our middleware properly. It does not take into the account the parallelism and predicted values differ significantly.
 
-% TODO: explain
 %$$E[r] = \frac{1/\mu^2}{(1 - \rho)^2} \approx \frac{1/13893^2}{0.97\%^2}$$
 %The 90th percentile calculated equals to : $2.3 E[r] \approx \SI{17138}{\micro\second}$. When we look at the data from middleware we can see that 90th percentile actually equals around \SI{13880}{\micro\second}, which is lower than the time calculated from the model.
 % TODO: explain
@@ -201,8 +200,6 @@ In this section we will model a system as a queue with $m$ servers processing th
 %For this model we take server discipline First Come First Served, with no buffer limitations.
 The population size is 210 clients. To create models for this section I have used the approach presented in the section \ref{sec:system-one-unit}, which is calculating service rate based on the maximum throughput. In the experiments described in this section runtime was shorter than in the stability experiment, but still we collected 180 values for the throughput (measuring every second for one minute, 3 replications). This enabled us to, once again, achieve quite good approximation. Another approach (dividing server time by the number of requests on the fly) would result in utilization over 1.
 
-In order to provide a proper analysis of the model, I had rerun the experiments from milestone 2. tasks 2. and 3. I have used the same configuration as provided in sections 2.2 and 3.2 of my report from the previous milestone. The only difference was in the logging facilities introduced for the middleware (for changes in the source code - see appendix). The new log files have corresponding names to those used in the previous milestones, but have 'improved\_' prefix (for log files list - see appendix).
-
 \iffalse
 In the scalability experiments analysis we also have to account for the fact that having replication increases load on the servers. Let us then introduce following symbols for parameters and measured values: $T$ - measured mean throughput, $M$ - measured maximum throughput, $w$ - writes percentage, $r$ - numbers of servers to which we replicate, $m$ - number of servers. Lets also take $N$ as the number of requests send by the clients to the middleware. Distinguishing between get and set requests, we have that all servers have to process $N'$ requests, where:
 $$N' = N (1 - w) + wrN = N (1 + w(r - 1))$$
@@ -215,13 +212,17 @@ When we now calculate the traffic intensity, introduced additional factors which
 $$\rho = \frac{\lambda}{m \mu} = \frac{T}{M}$$
 \fi
 
-There have been many different configurations used in the scalability experiments from previous milestone (task 2. and 3.). In order to provide a detailed analysis of created models I have focused my attention on creating models for extreme configurations - 3 and 7 servers, no replication and full replication, 1\% and 10\% of write requests. This will result in creating 8 models. We want to analyze the scalability of our system so I will look into increasing number of servers under 4 configurations (possible configurations for extreme values of replication factor and writes percentage; effect of these factors on performance will be analyzed in section \ref{sec:2k-experiment}).
+There have been many different configurations used in the scalability experiments from previous milestone (task 2. and 3.). In order to provide a detailed analysis of created models I have focused my attention on creating models for extreme configurations - 3 and 7 servers, no replication and full replication, 1\% and 10\% of write requests. This will result in creating 8 models. We want to analyze the scalability of our system so I will look into increasing number of servers under 4 configurations (possible configurations for extreme values of replication factor and writes percentage; effect of these factors on performance will be analyzed in section \ref{sec:2k-experiment}). All of these configurations have been investigated for task 3. from previous milestone.
+
+In order to provide a proper analysis of the model, I had rerun the experiments from milestone 2. task 3. (results from this task I'm using in this section). I have used the same configuration as provided in the section 3.2 of my report from the previous milestone. The only difference was in the logging facilities introduced for the middleware (for changes in the source code - see appendix). The new log files have corresponding names to those used in the previous milestones, but have 'improved-' prefix (for log files list - see appendix).
+
 
 \subsection{Input data for models}
 
 In the table \ref{fig:input} is presented the necessary data to create before mentioned models. I have calculated $\mu$ based on above formula.
 
 \begin{figure}
+{\small
 \begin{center}
 \begin{tabular}{|$c|^c|^c|^c|^c|^c|^c|^c|}
 \hline
@@ -239,6 +240,7 @@ $m$	& Rep.	&	 \parbox[t]{2cm}{Writes percentage (\%)} &	T	&	$\lambda$	&	M	&	$\mu
 \hline
 \end{tabular}
 \end{center}
+}
 \caption{Input data}
 \label{fig:input}
 \end{figure}
@@ -249,14 +251,14 @@ Let us point out here that $\mu$ (for each server) is significantly decreasing a
 
 Based on this data we can compute system properties. I have used formulas from Box 31.2 in the course book.
 
-Let us define: $P_0$ - probability that there are 0 jobs in the system, $P_q$ - probability of queuing, $R_g$, $R_s$, $R$ - number of, respectively, get, set and all requests on the fly. Rep. is an abbreviation for replication factor and w\% - for percentage of write requests. Other definitions are the same as in the book.
+Let us define: $P_0$ - probability that there are 0 jobs in the system, $P_q$ - probability of queuing, $R_g$, $R_s$, $R$ - number of, respectively, get, set and all requests on the fly. Rep. is an abbreviation for replication factor and W. - for percentage of write requests. Other definitions are the same as in the book.
 
 {\small
 \begin{center}
 \begin{tabular}{|$c|^c|^c|^c|^c|^c|^c|^c|^c|^c|^c|^c|^c|}
 \hline
 \rowstyle{\bfseries} 
-$m$	& Rep.	&	W\% & $\rho$ & $P_0$ &	$P_q$	&	$E[n]$ 	&	$E[n_q]$	& $E[n_s]$ &	$R_g$ & $R_s$ & $R$ & $\frac{R}{E[n_s]}$  \\
+$m$	& Rep.	&	W. & $\rho$ & $P_0$ &	$P_q$	&	$E[n]$ 	&	$E[n_q]$	& $E[n_s]$ &	$R_g$ & $R_s$ & $R$ & $\frac{R}{E[n_s]}$  \\
 \hline 3 & none & 1 & 0.790 & 0.060 & 0.631 & 4.74 & 2.37 & 2.37 & 52.06 & 1.21 & 53.27 & 22.48 \\ 
 \hline 7 & none & 1 & 0.786 & 0.003 & 0.458 & 7.19 & 1.69 & 5.51 & 72.87 & 1.17 & 74.03 & 13.45 \\ 
 \hline 3 & all & 1 & 0.794 & 0.058 & 0.638 & 4.84 & 2.46 & 2.38 & 54.66 & 1.25 & 55.91 & 23.47 \\ 
@@ -273,24 +275,23 @@ $m$	& Rep.	&	W\% & $\rho$ & $P_0$ &	$P_q$	&	$E[n]$ 	&	$E[n_q]$	& $E[n_s]$ &	$R_g
 
 From above table we can see that traffic intensity (utilization) for each server does not differ much as we increase number of servers and vary the configuration. The most significant difference can be seen for configuration (all, 10) (first element - describes replication factor, second - writes percentage). There increasing number of servers result in decrease in traffic intensity of around 0.06. In theory, 
 %traffic intensity should decrease as we increase number of servers - we should be able to achieve higher service rate, since service rate for each server should be independent and increasing their number should increase the effective service rate. 
-with more servers load for each servers should also decrease, so it should result in the decrease in the traffic density. However, the bottleneck of the whole system is middleware, not memcached servers, which is not well illustrated by our model. This means that as we increase number of servers load on the middleware is not decreasing and therefore traffic intensity does not change that much.
+with more servers load for each servers should also decrease, so it should result in the decrease in the traffic density. However, the bottleneck of the whole system is middleware, not memcached servers, which is not well illustrated by our model. This means that as we increase number of servers load on the middleware is not decreasing and therefore traffic intensity does not change that much. It must be pointed out here that average utilization of each server is equal to traffic intensity. 
 
-It must be pointed out here that average utilization of each server is equal to traffic intensity. 
+As we increase the number of servers, $P_0$ value significantly decreases. This is understandable, since for 7 servers we get worse performance (as analyzed in the report for milestone 2.), so most of the time some requests will be in the middleware.
+The probability of queueing is also decreasing as we increase the number of servers. This corresponds to our system design - with more servers we have more threads which take requests from the queue. Although altogether they might not be processed faster, workers can take them out of the queue more effectively. Even when the worker after it takes out the request from the queue looses it's processing time (becomes idle), the request is already being considered as being processed. 
 
-As we increase the number of servers, $P_0$ value significantly decreases. This is understandable, since for 7 servers we get worse performance (as analyzed in the report for milestone 2.), so most of the time some requests will be in the middleware. 
-% TODO: add 1st percentile for number of requests
-The probability of queueing is also decreasing as we increase the number of servers. This corresponds to our system design - with more servers we have more threads which take requests from the queue. Although altogether they might not be processed faster, workers can have take them out of the queue more effectively. Even when the worker after worker takes out the request from the queue looses it's processing time (becomes idle), the request is already being considered as being processed. %TODO: does this make sense
-
-From above table we can also see that the calculated number of requests being service does not correspond at all to the number of requests on the fly. The actual number of requests on the fly is always at least 13 times higher than the calculated value. 
-This is because our model does not take into the account the parallelization gained from dozens of threads sending the requests to the memcached servers. In M/M/m model we can have only maximally 3 jobs being processed at the same time. However, our middleware was able to process 90 get requests (for 3 servers) and 210 get requests (for 7 servers) in parallel, as well as theoretically unbounded number of set requests. This is why these values differ so much. When we calculate the ratio of number of measured requests on the fly and calculated number of requests being service we can clearly see that it is decreasing around 1.6 - 1.9 times. This is because we have only limited number of cores available for our middleware. When increasing number of servers we also increase the number of processing threads. Since there are only 8 cores, more threads mean less CPU time for each thread. The threads cannot perform there that well and less of them are used (some of them may not even at all be granted some CPU time). Therefore with increase of servers we notice less increase in the measured number of requests on the fly than for the calculated value (which does not represent well limited number of cores). 
+From above table we can also see that the calculated number of requests in service does not correspond at all to the number of requests on the fly. The actual number of requests on the fly is always at least 13 times higher than the calculated value. 
+This is because our model does not take into the account the parallelization gained from dozens of threads sending the requests to the memcached servers. In M/M/m model we can have only maximally $m$ jobs being processed at the same time. However, our middleware was able to process 90 get requests (for 3 servers) and 210 get requests (for 7 servers) in parallel, as well as theoretically unbounded number of set requests. This is why these values differ so much. When we calculate the ratio of number of measured requests on the fly and calculated number of requests in service as we increase the number of servers we can clearly see that it is decreasing around 1.6 - 1.9 times. This is because we have only limited number of cores available for our middleware. When increasing number of servers we also increase the number of processing threads. Since there are only 8 cores, more threads mean less CPU time for each thread. The threads cannot perform there that well and less of them are used (some of them may not even at all be granted some CPU time). Therefore with increase of servers we notice less increase in the measured number of requests on the fly than for the calculated value (which does not represent well limited number of cores). 
 
 %With introducing middleware we add overhead to processing the request and increase the response time (comparing to the case when we send requests directly to the memcached servers). 
  
-I have not collected data for number of requests in the queue. It would also significantly differ from above calculations and one could expect that the ratio would be similar to the ratio already calculated.
+I have not collected measured data for number of requests in the queue. It would also significantly differ from above calculations and one could expect that the ratio would be similar to the ratio already calculated.
+
+Worth pointing out is the fact that, according to the model, when we increase the number of servers, the number of requests in service is increasing, while number of requests in the queue is decreasing. This is understandable - with more servers more requests can be processed at the same time. Whet it comes to number of requests in the queue, with the same number of clients we have more processing elements, so lower number of requests would have to be queued.
 
 %As we increase number of servers we can clearly see the increase in the number of get requests in the server. This corresponds well to the design of our system - increasing number of servers means increase in the number of getter threads processing requests. So more requests can be processed at the same time. We can also actually see the increase in the number 
 
-It is worth noticing here that similar problems with huge differences between calculated number of requests and measured is similar to the case with M/M/1 model. Here we account for a little more parallelization than in the previous section, but we still don't consider many requests being processed in parallel for one server inside the middleware. One could try to take as an a number of servers the total number of threads in thread pools or the number of requests in the fly. However, this would not correspond to processing of the set requests - they are processed in the different way inside our middleware. Therefore that model might also not fit properly our system. Only network of queues described in the section \ref{sec:network-of-queues} could account for the whole parallelism available in our system (but it will still not correspond well to the real-word situation with limited number of cores).
+It is worth noticing here that problems with huge differences between calculated number of requests and measured is similar to the case with M/M/1 model. Here we account for a little more parallelization than in the previous section, but we still don't consider many requests being processed in parallel for one server inside the middleware. One could try to take as an a number of servers the total number of threads in thread pools or the number of requests on the fly. However, this would not correspond to processing of the set requests - they are processed in the different way inside our middleware. Therefore that model might also not fit properly our system. Only network of queues described in the section \ref{sec:network-of-queues} could account for the whole parallelism available in our system (but it will still not correspond well to the real-word situation with limited number of cores).
 
 % TODO: add variance
 
@@ -329,14 +330,14 @@ When we compare measured times with times calculated by the model we can, once a
 
 The ration between corresponding times are, however, more or less similar to the number of requests on the fly per each memcached server. This is because $\frac{R}{m}$ factor is the parallelism factor that our model is missing. We can clearly see that ratio of service time and servers time is always greater than corresponding number of active threads. This corresponds to the results I already mention in the section \ref{sec:system-one-unit}. This can be explained by the fact that memcached servers are not the bottleneck of the system. If ratio of service to servers time would be similar to number of requests on the fly, it would mean that memcached servers are almost all the time busy and time spent in the network would otherwise be spent in the queue of the memcached server. This is not the case, so servers time measured must be higher than $E[s]\frac{R}{m}$ - some of this time is also spent in the network while memcached servers are idle and waiting for new requests.
 
-We can also see clearly see that ratio of measured and calculated waiting time is smaller than ratio of measured and calculated service (servers) time for $m=3$ and greater for $m=7$. This is because as we increase the number of servers, the ratio for service time is decreasing, also like number of requests on the fly per server. Number of requests on the fly per server decreases, because with more threads we have more operating system and context switching overhead and our threads cannot be that effective and therefore lower number of them is user. On the other hand, ratio for waiting time is almost always increasing (when we go from 3 to 7 servers; apart from (all, 1) configuration). This is because with more servers waiting time predicted by the model usually increases (since we have lower number of requests per server), but measured time spent in the queue always increases (because of more overhead connected with increase in the number of threads).
+We can also see clearly see that ratio of measured and calculated waiting time is smaller than ratio of measured and calculated service (servers) time for $m=3$ and greater for $m=7$. This is because as we increase the number of servers, the ratio for service time is decreasing, also like number of requests on the fly per server. Number of requests on the fly per server decreases, because with more threads we have more operating system and context switching overhead and our threads cannot be that effective and therefore lower number of them is used. On the other hand, ratio for waiting time is almost always increasing (when we go from 3 to 7 servers; apart from (all, 1) configuration). This is because with more servers waiting time predicted by the model usually decreases (since we have lower number of requests per server), but measured time spent in the queue always increases (because of more overhead connected with increase in the number of threads).
 
-As we increase number of servers, the ration of service time to waiting time increases, both for calculated and measured values. This is because time spent in the servers is increasing, but calculated waiting time is usually decreases and measured waiting time increases slower (the increase in the waiting time is connected with the overhead on the middleware, increase in the waiting time is also connected with establishing more network connections and overhead of the network).
+As we increase number of servers, the ratio of service time to waiting time increases, both for calculated and measured values. This is because time spent in the servers is increasing, but calculated waiting time usually decreases and measured waiting time increases slower (the increase in the waiting time is connected with the overhead on the middleware, increase in the waiting time is also connected with establishing more network connections and overhead of the network).
 
 %As we increase replication factor and writes percentage (together or separately) the ratio between expected service time and expected waiting time is usually decreasing (apart from one case, when it doesn't change significantly). 
 
 \subsection{Conclusions}
-As I have shown in my analysis, M/M/m model do not correspond well to the implemented system and do not account for the whole parallelization of the system. As we scale our system (increase the number of servers), the model starts to better approximate the real behavior of the system. This is because we increase the parallelism of the model, we also increase the parallelism for our implementation, but the limitation in the number of cores prevent us to increase this parallelism as much as we would like to (if we wanted to maximize the performance of our middleware).
+As I have shown in my analysis, M/M/m model does not correspond well to the implemented system and do not account for the whole parallelization of the system. As we scale our system (increase the number of servers), the model starts to better approximate the real behavior of the system. This is because we increase the parallelism of the model, we also increase the parallelism for our implementation, but the limitation in the number of cores prevent us to increase this parallelism as much as we would like to (if we wanted to maximize the performance of our middleware).
 
 It is also worth pointing out here that we have created models that combine set and get. Both of these type of requests have different statistics and are processed in the different way. However, such simple model as M/M/m would be unable to include these different ways of processing requests. A proper distinction between these types will be introduced in the next section.
 
@@ -605,6 +606,11 @@ As we can see from above table, the interactive response time law corresponds we
 \hline mm1\_2 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/mm1_2.log}\\ 
 \hline mm1\_3 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/mm1_3.log}\\ 
 \hline mm1\_parsed & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/mm1_parsed.log}\\ 
+\hline  improved-writes\_1 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/improved-writes_1.tar.gz}\\ 
+\hline  improved-writes\_2 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/improved-writes_2.tar.gz}\\ 
+\hline  improved-writes\_3 & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/improved-writes_3.tar.gz}\\ 
+\hline  improved-writes\_general & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/improved-writes_general.tar.gz}\\ 
+\hline  improved-writes\_middleware & \url{https://gitlab.inf.ethz.ch/matusiaa/asl-fall16-project/blob/master/logs/milestone3/improved-writes_middleware.tar.gz}\\ 
 \hline 
 \end{tabular}
 
